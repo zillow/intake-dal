@@ -1,0 +1,22 @@
+metadata:
+  hierarchical_catalog: True
+entity:
+  user:
+    user_events:
+      driver: dal
+      description: "user_events description"
+      args:
+        default: 'local'
+        storage:
+          local: 'csv://{{ CATALOG_DIR }}/data/user_events.csv'
+          batch: 'parquet://{{ CATALOG_DIR }}/data/user_events.parquet'
+          serving: 'in-memory-kv://foo'
+          local_test: 'csv://{{ CATALOG_DIR }}/{{ data_path }}/user_events.csv'
+      parameters:
+        data_path:
+          description: should be 'data'
+          type: str
+        date:
+          description: should be '2019-08-12'
+          type: str
+
