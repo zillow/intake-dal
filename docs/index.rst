@@ -22,16 +22,19 @@ to a default storage system.
           serving: 'in-memory-kv://foo'
           batch: 'parquet://{{ CATALOG_DIR }}/data/user_events.parquet'
 
-
 .. code-block:: python
 
-  # Specialize the catalog dal default storge mode datasources
+  # Specialize the catalog dal default storage mode datasources
   # to be "serving".
   cat = DalCatalog(path, storage_mode="serving")
 
   # reads from the serving storage system
   # using the in-memory-kv Intake plugin
   df = cat.user_events.read()
+
+
+
+
 
 Indices and tables
 ==================

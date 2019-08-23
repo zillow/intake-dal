@@ -10,7 +10,7 @@ entity:
         storage:
           local: 'csv://{{ CATALOG_DIR }}/data/user_events.csv'
           batch: 'parquet://{{ CATALOG_DIR }}/data/user_events.parquet'
-          serving: 'in-memory-kv://foo'
+          serving: 'in-memory-kvs://foo'
           local_test: 'csv://{{ CATALOG_DIR }}/{{ data_path }}/user_events.csv'
       parameters:
         data_path:

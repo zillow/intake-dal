@@ -31,11 +31,15 @@ setup(
         'PyYAML',
         'deepmerge',
     ],
+    test_requires=[
+        'intake-parquet'
+    ],
     python_requires=">=3.6",
     entry_points={
         'intake.drivers': [
             'dal = intake_dal.dal_source:DalSource',
             'dal_cat = intake_dal.dal_catalog:DalCatalog',
+            'in-memory-kvs = intake_dal.in_memory_kv:InMemoryKVSource',
         ]
     },
 )
