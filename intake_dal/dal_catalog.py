@@ -1,7 +1,7 @@
 import vcver
 import yaml
 from intake.utils import yaml_load
-from intake_nested_yaml_catalog import NestedYAMLFileCatalog
+from intake_nested_yaml_catalog.nested_yaml_catalog import NestedYAMLFileCatalog
 
 
 class DalCatalog(NestedYAMLFileCatalog):
