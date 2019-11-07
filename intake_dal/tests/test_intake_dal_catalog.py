@@ -20,6 +20,12 @@ def test_dal_catalog_default_storage_parameter():
     assert cat.entity.user.user_events(storage_mode="serving").read().head().shape[0] == 4
     assert cat.entity.user.user_events(storage_mode="local_test", data_path="data").read().head().shape[0] == 2
 
+    import pandas as pd
+    df = pd.DataFrame({'key': ['a', 'first'], 'value': [3, 42]})
+    cat.entity.user.user_events(storage_mode="serving").write(df)
+    assert cat.entity.user.user_events(storage_mode="serving", key="a").read().iloc[0].key == "a"
+    assert cat.entity.user.user_events(storage_mode="serving", key="a").read().iloc[0].value == 3
+
 
 def test_dal_catalog_set_storage():
     cat = DalCatalog(catalog_path, storage_mode="batch")
@@ -37,7 +43,7 @@ def test_dal_catalog_set_storage():
     # read by key
     assert cat.entity.user.user_events(storage_mode="serving", key="second").read().shape[0] == 1
     assert cat.entity.user.user_events(storage_mode="serving", key="second").read().iloc[0].key == "second"
-    assert cat.entity.user.user_events(storage_mode="serving", key="second").read().iloc[0].value == "2"
+    assert cat.entity.user.user_events(storage_mode="serving", key="second").read().iloc[0].value == 2
 
     assert cat.entity.user.user_events(storage_mode="batch").discover() == \
            cat.entity.user.user_events(storage_mode="local").discover()

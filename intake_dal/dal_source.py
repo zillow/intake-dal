@@ -1,5 +1,7 @@
 from urllib.parse import urlparse, ParseResult  # noqa: F401
 
+import pandas as pd
+
 import pkg_resources
 from intake import DataSource
 from intake.catalog.local import LocalCatalogEntry
@@ -108,6 +110,12 @@ class DalSource(DataSource):
     def read_chunked(self):
         self._get_source()
         return self.source.read_chunked()
+
+    # TODO(talebz): This should also be within Intake but without DataFrame type!
+    def write(self, df: pd.DataFrame):
+        self._get_source()
+        return self.source.write(df)
+
 
     def to_dask(self):
         self._get_source()

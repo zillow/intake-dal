@@ -9,7 +9,10 @@ class InMemoryKVSource(DataSource):
     partition_access = False
     name = "in-memory-kvs"
 
-    db = {"first": 1, "second": 2, "third": 3, "fourth": 4}
+    db = pd.DataFrame({
+        'key': ['first', 'second', 'third', 'fourth'],
+        'value': [1, 2, 3, 4]
+    })
 
     def __init__(self, urlpath="", key=None, storage_options=None, metadata=None):
         # store important kwargs
@@ -30,13 +33,16 @@ class InMemoryKVSource(DataSource):
 
     def _get_partition(self, _) -> pd.DataFrame:
         if self._key:
-            return pd.DataFrame(
-                [(self._key, self.db[self._key])], columns=["key", "value"], dtype=str
-            )
+            return InMemoryKVSource.db[self.db.key == self._key]
         else:
-            return pd.DataFrame(
-                list(self.db.items()), columns=["key", "value"], dtype=str
-            )
+            return InMemoryKVSource.db
+
+    def write(self, df: pd.DataFrame):
+        new_db = pd.merge(InMemoryKVSource.db, df, on='key', how='outer')
+        new_db['value'] = new_db['value_y'].fillna(new_db['value_x']).astype('int')
+
+        InMemoryKVSource.db = new_db[['key', 'value']]
+        return InMemoryKVSource.db
 
     def _close(self):
         pass
