@@ -28,13 +28,23 @@ setup(
         'vcver',
         'intake',
         'intake-nested-yaml-catalog',
+        'pyarrow',
         'PyYAML',
         'deepmerge',
     ],
     test_requires=[
         'intake-parquet'
     ],
-    python_requires=">=3.6",
+    classifiers=[
+        'Development Status :: 2 - Pre-Alpha',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: Apache Software License',
+        'Natural Language :: English',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+    ],
+    python_requires=">=3",
     entry_points={
         'intake.drivers': [
             'dal = intake_dal.dal_source:DalSource',

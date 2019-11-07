@@ -1,4 +1,4 @@
-import vcver
+import pkg_resources
 import yaml
 from intake.utils import yaml_load
 from intake_nested_yaml_catalog.nested_yaml_catalog import NestedYAMLFileCatalog
@@ -11,7 +11,7 @@ class DalCatalog(NestedYAMLFileCatalog):
     """
 
     name = "dal_cat"
-    version = vcver.get_version()
+    version = pkg_resources.get_distribution("intake-dal").version
 
     def __init__(self, path, storage_mode=None, autoreload=True, **kwargs):
         """
