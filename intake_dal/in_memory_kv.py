@@ -1,10 +1,11 @@
+import pkg_resources
 from intake import DataSource, Schema
 import pandas as pd
 
 
 class InMemoryKVSource(DataSource):
     container = "dataframe"
-    version = "0.0.1"
+    version = pkg_resources.get_distribution("intake-dal").version
     partition_access = False
     name = "in-memory-kvs"
 

@@ -1,3 +1,14 @@
+.. image:: https://travis-ci.org/zillow/intake-dal.svg?branch=master
+    :target: https://travis-ci.org/zillow/intake-dal
+
+.. image:: https://coveralls.io/repos/github/zillow/intake-dal/badge.svg?branch=master
+    :target: https://coveralls.io/github/zillow/intake-dal?branch=master
+
+.. image:: https://readthedocs.org/projects/intake-dal/badge/?version=latest
+    :target: https://intake-dal.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
+
 Welcome to Intake DAL (data access layer) plugin
 ==================================================
 This `Intake <https://intake.readthedocs.io/en/latest/quickstart.html>`_ plugin helps

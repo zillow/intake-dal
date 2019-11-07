@@ -1,6 +1,6 @@
 from urllib.parse import urlparse, ParseResult  # noqa: F401
 
-import vcver
+import pkg_resources
 from intake import DataSource
 from intake.catalog.local import LocalCatalogEntry
 
@@ -28,7 +28,7 @@ class DalSource(DataSource):
 
     container = "other"
     name = "dal"
-    version = vcver.get_version()
+    version = pkg_resources.get_distribution("intake-dal").version
 
     def __init__(self, storage, default, storage_mode=None, metadata=None, **kwargs):
         """
@@ -81,6 +81,7 @@ class DalSource(DataSource):
         if parse_result.scheme == "parquet":
             # https://github.com/dask/dask/issues/5272: Dask parquet metadata w/ ~2k files very slow
             args["gather_statistics"] = False
+            args["engine"] = "pyarrow"
 
         entry = LocalCatalogEntry(
             name=desc["name"],
