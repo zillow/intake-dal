@@ -124,6 +124,9 @@ class DalSource(DataSource):
         self._get_source()
         return self.source.write(df)
 
+    def to_spark(self):
+        self._get_source()
+        return self.source.to_spark()
 
     def to_dask(self):
         self._get_source()
