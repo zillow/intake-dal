@@ -29,7 +29,7 @@ class DalSource(DataSource):
           batch: 'parquet://{{ CATALOG_DIR }}/data/user_events.parquet'
     """
 
-    container = "other"
+    container = "dataframe"
     name = "dal"
     version = pkg_resources.get_distribution("intake-dal").version
 
