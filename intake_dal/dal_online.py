@@ -134,7 +134,7 @@ def _avro_to_dtype(schema: Dict) -> Dict:
     field_schemas = {f['name']: f['type'] for f in schema['fields']}
     avro_type_to_dtype = {
         tuple(sorted(['type', 'long', 'logicalType', 'timestamp-millis'])): np.dtype('datetime64'),
-        # tuple(sorted(['type', 'long', 'logicalType', 'timestamp-millis', 'null'])): np.datetime64,
+        tuple(sorted(['type', 'long', 'logicalType', 'timestamp-micros'])): np.dtype('datetime64'),
         tuple(sorted(['null', 'int'])): np.dtype('Int32'),
         tuple(sorted(['null', 'long'])): np.dtype('Int32'),
         tuple(sorted(['type', 'int', 'unsigned', 'True'])): np.dtype('UInt32'),
