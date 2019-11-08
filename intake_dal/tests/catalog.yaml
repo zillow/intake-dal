@@ -1,5 +1,16 @@
 metadata:
   hierarchical_catalog: True
+  data_schema:
+    #   TODO(talebz) integrate with kafka_schema_registry:
+    #   kafka_schema_registry: http://url
+    entity.user.user_events: >
+      {"fields": [{"name": "userid", "type": "long"},
+                  {"name": "home_id", "type": "int"},
+                  {"name": "action", "type": ["string"]},
+                  {"name": "timestamp", "type": ["null", {"logicalType": "timestamp-millis", "type": "long"}]}
+                  ],
+       "name": "Root",
+       "type": "record"}
 entity:
   user:
     user_events:
@@ -10,8 +21,9 @@ entity:
         storage:
           local: 'csv://{{ CATALOG_DIR }}/data/user_events.csv'
           batch: 'parquet://{{ CATALOG_DIR }}/data/user_events.parquet'
-          serving: 'in-memory-kvs://foo'
+          in_mem: 'in-memory-kvs://foo'
           local_test: 'csv://{{ CATALOG_DIR }}/{{ data_path }}/user_events.csv'
+          serving: 'dal-online://https://featurestore.dev.zo.zillow.net#userid'
       parameters:
         data_path:
           description: should be 'data'

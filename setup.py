@@ -31,6 +31,7 @@ setup(
         'pyarrow',
         'PyYAML',
         'deepmerge',
+        'pandavro',
     ],
     test_requires=[
         'intake-parquet'
@@ -49,6 +50,7 @@ setup(
         'intake.drivers': [
             'dal = intake_dal.dal_source:DalSource',
             'dal_cat = intake_dal.dal_catalog:DalCatalog',
+            'dal-online = intake_dal.dal_online:DalOnlineSource',
             'in-memory-kvs = intake_dal.in_memory_kv:InMemoryKVSource',
         ]
     },
