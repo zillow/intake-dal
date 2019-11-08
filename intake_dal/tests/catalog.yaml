@@ -23,7 +23,7 @@ entity:
           batch: 'parquet://{{ CATALOG_DIR }}/data/user_events.parquet'
           in_mem: 'in-memory-kvs://foo'
           local_test: 'csv://{{ CATALOG_DIR }}/{{ data_path }}/user_events.csv'
-          serving: 'dal-online://https://featurestore.dev.zo.zillow.net#userid'
+          serving: 'dal-online://https://featurestore.url.net#userid'
       parameters:
         data_path:
           description: should be 'data'

@@ -66,18 +66,28 @@ class DalOnlineSource(DataSource):
     def write(self, df: pd.DataFrame):
         self._get_schema()
         avro_str = serialize_panda_df_to_str(df, self._avro_schema)
-        _http_put_avro_data_set(
-            self._url,
+        self._http_put_avro_data_set(
             {'data_set_name': self._canonical_name, 'key_name': self._key_name, 'avro_rows': avro_str}
         )
 
     def _get_partition(self, _) -> pd.DataFrame:
         self._get_schema()
+        return deserialize_avro_str_to_pandas(self._http_get_avro_data_set(), self._avro_schema)
+
+    def _http_put_avro_data_set(self, json: Dict) -> int:
+        response = requests.put(urllib.parse.urljoin(self._url, "avro-data-sets/"), json=json)
+        if response.status_code != 200:
+            raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
+
+        return response.status_code
+
+    def _http_get_avro_data_set(self) -> str:
         response = requests.get(
             urllib.parse.urljoin(self._url, f"avro-data-sets/{self._canonical_name}/{self._key_value}"),
         )
-
-        return deserialize_avro_str_to_pandas(response.json()['avro_rows'])
+        if response.status_code != 200:
+            raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
+        return response.json()['avro_rows']
 
     def _close(self):
         pass
@@ -94,22 +104,8 @@ def serialize_panda_df_to_str(df: pd.DataFrame, schema: Dict) -> str:
         return base64.b64encode(bytes_io.read()).decode('utf-8')
 
 
-def deserialize_avro_str_to_pandas(response_str: str, schema: dict = None) -> pd.DataFrame:
-    return pandavro.from_avro(io.BytesIO(base64.b64decode(response_str)), schema)
-
-
-# TODO(talebz) exponential backoff with retries
-def _http_put_avro_data_set(dest_host: str, json: Dict) -> int:
-    # HTTP Put!
-    response = requests.put(
-        urllib.parse.urljoin(dest_host, "avro-data-sets/"),
-        json=json
-    )
-
-    if response.status_code != 200:
-        raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
-
-    return response.status_code
+def deserialize_avro_str_to_pandas(avro_str: str, schema: dict = None) -> pd.DataFrame:
+    return pandavro.from_avro(io.BytesIO(base64.b64decode(avro_str)), schema)
 
 
 def _get_avro(source: DataSource, canonical_name: str) -> Optional[Dict]:
