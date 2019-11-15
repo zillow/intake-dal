@@ -19,27 +19,28 @@ class DalOnlineSource(DataSource):
     Interfaces with Online FS
     This Intake source is to be used in conjunction with intake-dal
     """
+
     container = "dataframe"
     partition_access = False
     name = "dal-online"
     version = pkg_resources.get_distribution("intake-dal").version
 
-    def __init__(self, urlpath="", key=None, storage_options=None, metadata=None):
+    def __init__(self, urlpath, key=None, storage_options=None, metadata=None):
         """
-            Fetches from Online FS
+            Fetches rows from the Online Feature Store (FS).
         Args:
-            urlpath: the host path
-            key: key value
-            key_name: key name
+            urlpath: the host path, must include primary_key name as a fragment.
+            key: The primary_key value.
             storage_options: optional storage options to send along
-            metadata:
+            metadata: Used by Intake
         """
 
         self._urlpath = urlpath
         parse_result = urlparse(urlpath)  # type: ParseResult
         (self._url, _) = urldefrag(urlpath)
         self._key_name = parse_result.fragment
-        assert self._key_name != "", "key_name expected in URL fragment"
+        if self._key_name == "":
+            raise ValueError(f"key_name expected in URL fragment of {urlpath}")
         self._key_value = key
         self._canonical_name = None  # _get_schema() sets this
         super(DalOnlineSource, self).__init__(metadata=metadata)
@@ -63,31 +64,34 @@ class DalOnlineSource(DataSource):
     def write(self, df: pd.DataFrame):
         self._get_schema()
         avro_str = serialize_panda_df_to_str(df, self._avro_schema)
-        self._http_put_avro_data_set(
-            {"data_set_name": self._canonical_name, "key_name": self._key_name, "avro_rows": avro_str}
+        _http_put_avro_data_set(
+            self._url,
+            {"data_set_name": self._canonical_name, "key_name": self._key_name, "avro_rows": avro_str},
         )
 
     def _get_partition(self, _) -> pd.DataFrame:
         self._get_schema()
-        return deserialize_avro_str_to_pandas(self._http_get_avro_data_set(), self._avro_schema)
-
-    def _http_put_avro_data_set(self, json: Dict) -> int:
-        response = requests.put(urllib.parse.urljoin(self._url, "avro-data-sets/"), json=json)
-        if response.status_code != 200:
-            raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
-
-        return response.status_code
-
-    def _http_get_avro_data_set(self) -> str:
-        response = requests.get(
-            urllib.parse.urljoin(self._url, f"avro-data-sets/{self._canonical_name}/{self._key_value}")
+        return deserialize_avro_str_to_pandas(
+            _http_get_avro_data_set(self._url, self._canonical_name, self._key_value), self._avro_schema
         )
-        if response.status_code != 200:
-            raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
-        return response.json()["avro_rows"]
 
     def _close(self):
         pass
+
+
+def _http_get_avro_data_set(url: str, canonical_name: str, key_value: str) -> str:
+    response = requests.get(urllib.parse.urljoin(url, f"avro-data-sets/{canonical_name}/{key_value}"))
+    if response.status_code != 200:
+        raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
+    return response.json()["avro_rows"]
+
+
+def _http_put_avro_data_set(url: str, json: Dict) -> int:
+    response = requests.put(urllib.parse.urljoin(url, "avro-data-sets/"), json=json)
+    if response.status_code != 200:
+        raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
+
+    return response.status_code
 
 
 def serialize_panda_df_to_str(df: pd.DataFrame, schema: Dict) -> str:
@@ -134,10 +138,10 @@ def _avro_to_dtype(schema: Dict) -> Dict:
     avro_type_to_dtype = {
         tuple(sorted(["type", "long", "logicalType", "timestamp-millis"])): np.dtype("datetime64"),
         tuple(sorted(["type", "long", "logicalType", "timestamp-micros"])): np.dtype("datetime64"),
-        tuple(sorted(["null", "int"])): np.dtype("Int32"),
-        tuple(sorted(["null", "long"])): np.dtype("Int32"),
-        tuple(sorted(["type", "int", "unsigned", "True"])): np.dtype("UInt32"),
-        tuple(sorted(["type", "long", "unsigned", "True"])): np.dtype("Int64"),
+        tuple(sorted(["null", "int"])): np.dtype("int32"),
+        tuple(sorted(["null", "long"])): np.dtype("int32"),
+        tuple(sorted(["type", "int", "unsigned", "True"])): np.dtype("uint32"),
+        tuple(sorted(["type", "long", "unsigned", "True"])): np.dtype("int64"),
         tuple(["long"]): np.dtype("int64"),
         tuple(["int"]): np.dtype("int32"),
         tuple(["float"]): np.dtype("float32"),

@@ -5,6 +5,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pandas as pd
+import pytest
 from pandas.util.testing import assert_frame_equal
 
 from intake_dal.dal_catalog import DalCatalog
@@ -69,9 +70,19 @@ def test_dal_source_description():
     assert cat.entity.user.user_events.description == "user_events description"
 
 
-@mock.patch("intake_dal.dal_online.DalOnlineSource._http_put_avro_data_set")
-@mock.patch("intake_dal.dal_online.DalOnlineSource._http_get_avro_data_set")
-def test_dal_online_write_read(mock_get: MagicMock, mock_put: MagicMock):
+@pytest.fixture
+def serving_cat():
+    return DalCatalog(catalog_path, storage_mode="serving")
+
+
+def test_dal_online_key_value_on_read(serving_cat: DalCatalog):
+    serving_cat.entity.user.user_events(storage_mode="in_mem", key="first").read()
+    pass
+
+
+@mock.patch("intake_dal.dal_online._http_put_avro_data_set")
+@mock.patch("intake_dal.dal_online._http_get_avro_data_set")
+def test_dal_online_write_read(mock_get: MagicMock, mock_put: MagicMock, serving_cat: DalCatalog):
     df = pd.DataFrame(
         {
             "userid": [100],
@@ -81,37 +92,38 @@ def test_dal_online_write_read(mock_get: MagicMock, mock_put: MagicMock):
         }
     )
 
-    cat = DalCatalog(catalog_path, storage_mode="serving")  # URL path
+    serving_cat = DalCatalog(catalog_path, storage_mode="serving")  # URL path
 
     canonical_name = "entity.user.user_events"
-    avro_str = serialize_panda_df_to_str(df, schema=json.loads(cat.metadata["data_schema"][canonical_name]))
+    avro_str = serialize_panda_df_to_str(
+        df, schema=json.loads(serving_cat.metadata["data_schema"][canonical_name])
+    )
     mock_get.return_value = avro_str
     mock_put.return_value = 200
 
-    cat.entity.user.user_events(storage_mode="serving").write(df)
-    assert cat.entity.user.user_events(key=100).read().iloc[0].userid == 100
-    assert cat.entity.user.user_events(key=100).read().iloc[0].home_id == 3
+    serving_cat.entity.user.user_events(storage_mode="serving").write(df)
+    assert serving_cat.entity.user.user_events(key=100).read().iloc[0].userid == 100
+    assert serving_cat.entity.user.user_events(key=100).read().iloc[0].home_id == 3
 
-    assert_frame_equal(df, cat.entity.user.user_events(key=100).read(), check_dtype=False)
+    assert_frame_equal(df, serving_cat.entity.user.user_events(key=100).read(), check_dtype=False)
 
     mock_get.assert_called()
     mock_put.assert_called()
 
     assert_frame_equal(
-        df, deserialize_avro_str_to_pandas(mock_put.call_args[0][0]["avro_rows"]), check_dtype=False
+        df, deserialize_avro_str_to_pandas(mock_put.call_args[0][1]["avro_rows"]), check_dtype=False
     )
 
-    assert avro_str != mock_put.call_args[0][0]["avro_rows"]  # not sure why!
+    assert avro_str != mock_put.call_args[0][1]["avro_rows"]  # not sure why!
 
     # todo: Why is this not idempotent?
     assert serialize_panda_df_to_str(
-        df, schema=json.loads(cat.metadata["data_schema"][canonical_name])
-    ) != serialize_panda_df_to_str(df, schema=json.loads(cat.metadata["data_schema"][canonical_name]))
+        df, schema=json.loads(serving_cat.metadata["data_schema"][canonical_name])
+    ) != serialize_panda_df_to_str(df, schema=json.loads(serving_cat.metadata["data_schema"][canonical_name]))
 
 
-def test_dtype():
-    cat = DalCatalog(catalog_path, storage_mode="serving")
-    ds = cat.entity.user.user_events(key="a")
+def test_dtype(serving_cat):
+    ds = serving_cat.entity.user.user_events(key="a")
     info = ds.discover()
 
     assert info["dtype"] == {
@@ -122,7 +134,6 @@ def test_dtype():
     }
 
 
-def test_canonical_name():
-    cat = DalCatalog(catalog_path, storage_mode="serving")
-    ds = cat.entity.user.user_events(key="a")
+def test_canonical_name(serving_cat):
+    ds = serving_cat.entity.user.user_events(key="a")
     assert ds.discover()["metadata"]["canonical_name"] == "entity.user.user_events"
