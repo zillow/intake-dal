@@ -1,10 +1,10 @@
-from urllib.parse import urlparse, ParseResult, urldefrag  # noqa: F401
 import base64
 import io
 import json
 import urllib.parse
 from collections import Iterable
 from typing import Dict, Optional
+from urllib.parse import ParseResult, urldefrag, urlparse  # noqa: F401
 
 import numpy as np
 import pandas as pd
@@ -39,14 +39,14 @@ class DalOnlineSource(DataSource):
         parse_result = urlparse(urlpath)  # type: ParseResult
         (self._url, _) = urldefrag(urlpath)
         self._key_name = parse_result.fragment
-        assert self._key_name != '', "key_name expected in URL fragment"
+        assert self._key_name != "", "key_name expected in URL fragment"
         self._key_value = key
         self._canonical_name = None  # _get_schema() sets this
         super(DalOnlineSource, self).__init__(metadata=metadata)
 
     def _get_schema(self):
         if self._canonical_name is None:
-            self._canonical_name = self.metadata['canonical_name']  # an intake-dal feature
+            self._canonical_name = self.metadata["canonical_name"]  # an intake-dal feature
             # TODO(talebz): Getting avro schema should be promoted to Intake
             self._avro_schema = _get_avro(self, self._canonical_name)
             self._schema_dtypes = _avro_to_dtype(self._avro_schema)
@@ -57,17 +57,14 @@ class DalOnlineSource(DataSource):
             dtype=self._dtypes,
             shape=(None, len(self._dtypes)),
             npartitions=1,  # This data is not partitioned, so there is only one partition
-            extra_metadata={
-                'canonical_name': self._canonical_name,
-                'urlpath': self._urlpath
-            },
+            extra_metadata={"canonical_name": self._canonical_name, "urlpath": self._urlpath},
         )
 
     def write(self, df: pd.DataFrame):
         self._get_schema()
         avro_str = serialize_panda_df_to_str(df, self._avro_schema)
         self._http_put_avro_data_set(
-            {'data_set_name': self._canonical_name, 'key_name': self._key_name, 'avro_rows': avro_str}
+            {"data_set_name": self._canonical_name, "key_name": self._key_name, "avro_rows": avro_str}
         )
 
     def _get_partition(self, _) -> pd.DataFrame:
@@ -83,11 +80,11 @@ class DalOnlineSource(DataSource):
 
     def _http_get_avro_data_set(self) -> str:
         response = requests.get(
-            urllib.parse.urljoin(self._url, f"avro-data-sets/{self._canonical_name}/{self._key_value}"),
+            urllib.parse.urljoin(self._url, f"avro-data-sets/{self._canonical_name}/{self._key_value}")
         )
         if response.status_code != 200:
             raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
-        return response.json()['avro_rows']
+        return response.json()["avro_rows"]
 
     def _close(self):
         pass
@@ -101,7 +98,7 @@ def serialize_panda_df_to_str(df: pd.DataFrame, schema: Dict) -> str:
         df = df.replace({np.nan: None})
         pandavro.to_avro(bytes_io, df, schema=schema)
         bytes_io.seek(0)
-        return base64.b64encode(bytes_io.read()).decode('utf-8')
+        return base64.b64encode(bytes_io.read()).decode("utf-8")
 
 
 def deserialize_avro_str_to_pandas(avro_str: str, schema: dict = None) -> pd.DataFrame:
@@ -111,10 +108,12 @@ def deserialize_avro_str_to_pandas(avro_str: str, schema: dict = None) -> pd.Dat
 def _get_avro(source: DataSource, canonical_name: str) -> Optional[Dict]:
     data_schema_entry = _get_metadata_schema(source)
 
-    if 'kafka_schema_registry' in data_schema_entry:
+    if "kafka_schema_registry" in data_schema_entry:
         # TODO(talebz): check data_schema_entry for kafka_schema_registry.  If exists then query Kafka Schema Registry
-        raise NotImplementedError("kafka_schema_registry integration not yet supported.  "
-                                  f"Please put schema as {canonical_name}: > JSON of avro schema")
+        raise NotImplementedError(
+            "kafka_schema_registry integration not yet supported.  "
+            f"Please put schema as {canonical_name}: > JSON of avro schema"
+        )
 
     if canonical_name in data_schema_entry:
         return json.loads(data_schema_entry[canonical_name])
@@ -123,28 +122,28 @@ def _get_avro(source: DataSource, canonical_name: str) -> Optional[Dict]:
 
 
 def _get_metadata_schema(source: DataSource) -> Dict:
-    if 'data_schema' in source.metadata:
-        return source.metadata['data_schema']
+    if "data_schema" in source.metadata:
+        return source.metadata["data_schema"]
     elif source.cat:
         return _get_metadata_schema(source.cat)
 
 
 # TODO(talebz): ensure this is comprehensive with unit tests!
 def _avro_to_dtype(schema: Dict) -> Dict:
-    field_schemas = {f['name']: f['type'] for f in schema['fields']}
+    field_schemas = {f["name"]: f["type"] for f in schema["fields"]}
     avro_type_to_dtype = {
-        tuple(sorted(['type', 'long', 'logicalType', 'timestamp-millis'])): np.dtype('datetime64'),
-        tuple(sorted(['type', 'long', 'logicalType', 'timestamp-micros'])): np.dtype('datetime64'),
-        tuple(sorted(['null', 'int'])): np.dtype('Int32'),
-        tuple(sorted(['null', 'long'])): np.dtype('Int32'),
-        tuple(sorted(['type', 'int', 'unsigned', 'True'])): np.dtype('UInt32'),
-        tuple(sorted(['type', 'long', 'unsigned', 'True'])): np.dtype('Int64'),
-        tuple(['long']): np.dtype('int64'),
-        tuple(['int']): np.dtype('int32'),
-        tuple(['float']): np.dtype('float32'),
-        tuple(['double']): np.dtype('float64'),
-        tuple(['boolean']): np.dtype('bool'),
-        tuple(['string']): np.dtype('object'),
+        tuple(sorted(["type", "long", "logicalType", "timestamp-millis"])): np.dtype("datetime64"),
+        tuple(sorted(["type", "long", "logicalType", "timestamp-micros"])): np.dtype("datetime64"),
+        tuple(sorted(["null", "int"])): np.dtype("Int32"),
+        tuple(sorted(["null", "long"])): np.dtype("Int32"),
+        tuple(sorted(["type", "int", "unsigned", "True"])): np.dtype("UInt32"),
+        tuple(sorted(["type", "long", "unsigned", "True"])): np.dtype("Int64"),
+        tuple(["long"]): np.dtype("int64"),
+        tuple(["int"]): np.dtype("int32"),
+        tuple(["float"]): np.dtype("float32"),
+        tuple(["double"]): np.dtype("float64"),
+        tuple(["boolean"]): np.dtype("bool"),
+        tuple(["string"]): np.dtype("object"),
     }
 
     def to_lookup(avro_type) -> tuple:
@@ -158,9 +157,9 @@ def _avro_to_dtype(schema: Dict) -> Dict:
         lookup = to_lookup(v)
         if lookup in avro_type_to_dtype:
             ret[k] = avro_type_to_dtype[lookup]
-        elif 'null' in lookup:
+        elif "null" in lookup:
             list_lookup = list(lookup)
-            list_lookup.remove('null')
+            list_lookup.remove("null")
             new_lookup = tuple(list_lookup)
             if new_lookup in avro_type_to_dtype:
                 ret[k] = avro_type_to_dtype[new_lookup]
@@ -185,4 +184,3 @@ def _flatten(ls):
                 yield sub_collection
         else:
             yield i
-
