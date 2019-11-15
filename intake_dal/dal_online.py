@@ -3,7 +3,8 @@ import io
 import json
 import urllib.parse
 from collections import Iterable
-from typing import Dict, Optional
+from http import HTTPStatus
+from typing import Dict, Optional, Union
 from urllib.parse import ParseResult, urldefrag, urlparse  # noqa: F401
 
 import numpy as np
@@ -37,15 +38,15 @@ class DalOnlineSource(DataSource):
 
         self._urlpath = urlpath
         parse_result = urlparse(urlpath)  # type: ParseResult
-        (self._url, _) = urldefrag(urlpath)
+        self._url, _ = urldefrag(urlpath)
         self._key_name = parse_result.fragment
         if self._key_name == "":
             raise ValueError(f"key_name expected in URL fragment of {urlpath}")
         self._key_value = key
         self._canonical_name = None  # _get_schema() sets this
-        super(DalOnlineSource, self).__init__(metadata=metadata)
+        super().__init__(metadata=metadata)
 
-    def _get_schema(self):
+    def _get_schema(self) -> Schema:
         if self._canonical_name is None:
             self._canonical_name = self.metadata["canonical_name"]  # an intake-dal feature
             # TODO(talebz): Getting avro schema should be promoted to Intake
@@ -79,18 +80,20 @@ class DalOnlineSource(DataSource):
         pass
 
 
+AVRO_DATA_SETS_PATH = "avro-data-sets"
+
+
 def _http_get_avro_data_set(url: str, canonical_name: str, key_value: str) -> str:
-    response = requests.get(urllib.parse.urljoin(url, f"avro-data-sets/{canonical_name}/{key_value}"))
-    if response.status_code != 200:
+    response = requests.get(urllib.parse.urljoin(url, f"{AVRO_DATA_SETS_PATH}/{canonical_name}/{key_value}"))
+    if response.status_code != HTTPStatus.OK.value:
         raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
     return response.json()["avro_rows"]
 
 
 def _http_put_avro_data_set(url: str, json: Dict) -> int:
-    response = requests.put(urllib.parse.urljoin(url, "avro-data-sets/"), json=json)
-    if response.status_code != 200:
+    response = requests.put(urllib.parse.urljoin(url, f"{AVRO_DATA_SETS_PATH}/"), json=json)
+    if response.status_code != HTTPStatus.OK.value:
         raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
-
     return response.status_code
 
 
@@ -150,7 +153,7 @@ def _avro_to_dtype(schema: Dict) -> Dict:
         tuple(["string"]): np.dtype("object"),
     }
 
-    def to_lookup(avro_type) -> tuple:
+    def to_lookup(avro_type: Union[str, list]) -> tuple:
         if isinstance(avro_type, str):
             return tuple([avro_type])
         elif isinstance(avro_type, list):
@@ -175,7 +178,7 @@ def _avro_to_dtype(schema: Dict) -> Dict:
     return ret
 
 
-def _flatten(ls):
+def _flatten(ls: Iterable) -> Iterable:
     def iter_ls():
         if isinstance(ls, dict):
             return ls.items()
