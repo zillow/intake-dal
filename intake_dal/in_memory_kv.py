@@ -1,6 +1,6 @@
+import pandas as pd
 import pkg_resources
 from intake import DataSource, Schema
-import pandas as pd
 
 
 class InMemoryKVSource(DataSource):
@@ -9,10 +9,7 @@ class InMemoryKVSource(DataSource):
     partition_access = False
     name = "in-memory-kvs"
 
-    db = pd.DataFrame({
-        'key': ['first', 'second', 'third', 'fourth'],
-        'value': [1, 2, 3, 4]
-    })
+    db = pd.DataFrame({"key": ["first", "second", "third", "fourth"], "value": [1, 2, 3, 4]})
 
     def __init__(self, urlpath="", key=None, storage_options=None, metadata=None):
         # store important kwargs
@@ -38,10 +35,10 @@ class InMemoryKVSource(DataSource):
             return InMemoryKVSource.db
 
     def write(self, df: pd.DataFrame):
-        new_db = pd.merge(InMemoryKVSource.db, df, on='key', how='outer')
-        new_db['value'] = new_db['value_y'].fillna(new_db['value_x']).astype('int')
+        new_db = pd.merge(InMemoryKVSource.db, df, on="key", how="outer")
+        new_db["value"] = new_db["value_y"].fillna(new_db["value_x"]).astype("int")
 
-        InMemoryKVSource.db = new_db[['key', 'value']]
+        InMemoryKVSource.db = new_db[["key", "value"]]
         return InMemoryKVSource.db
 
     def _close(self):

@@ -1,7 +1,7 @@
 metadata:
   hierarchical_catalog: True
   data_schema:
-    #   TODO(talebz) integrate with kafka_schema_registry:
+    #   FUTURE: This could be a link to a kafka schema registry
     #   kafka_schema_registry: http://url
     entity.user.user_events: >
       {"fields": [{"name": "userid", "type": "long"},

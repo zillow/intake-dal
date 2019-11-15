@@ -2,8 +2,14 @@ sudo: false
 language: python
 python:
   - "3.6"
+before_install:
+  - pip install --upgrade pip
+  - pip install poetry
 install:
-    - pip install coveralls
-script: "./uranium test"
+  - poetry install
+  - pip install coveralls
+script:
+  - poetry run flake8 intake_dal
+  - poetry run pytest intake_dal
 after_success:
     coveralls

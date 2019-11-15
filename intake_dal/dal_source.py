@@ -1,8 +1,7 @@
-from urllib.parse import urlparse, ParseResult  # noqa: F401
 from typing import List
+from urllib.parse import ParseResult, urlparse  # noqa: F401
 
 import pandas as pd
-
 import pkg_resources
 from intake import DataSource
 from intake.catalog.local import LocalCatalogEntry
@@ -64,9 +63,7 @@ class DalSource(DataSource):
 
     def _instantiate_source(self):
         """ Driving method of this class. """
-        mode = self.storage[
-            self.storage_mode if self.storage_mode else self.default
-        ]
+        mode = self.storage[self.storage_mode if self.storage_mode else self.default]
 
         args = {}
         mode_url = mode
@@ -78,7 +75,7 @@ class DalSource(DataSource):
         #  - scheme is the Intake driver name.
         #  - path becomes the driver "urlpath" argument.
         parse_result = urlparse(mode_url)  # type: ParseResult
-        fragment = '' if parse_result.fragment == '' else f"#{parse_result.fragment}"
+        fragment = "" if parse_result.fragment == "" else f"#{parse_result.fragment}"
 
         url_path = f"{parse_result.netloc}{parse_result.path}{fragment}"
         desc = self.catalog_object[self.name].describe()
@@ -99,7 +96,7 @@ class DalSource(DataSource):
 
         source = entry.get(metadata=self.metadata, **self.kwargs)
 
-        source.metadata['canonical_name'] = _get_dal_canonical_name(source)
+        source.metadata["canonical_name"] = _get_dal_canonical_name(source)
 
         return source
 
@@ -141,4 +138,3 @@ def _get_dal_canonical_name(source: DataSource) -> str:
             return helper(source.cat) + [source.name]
 
     return ".".join(helper(source))
-
