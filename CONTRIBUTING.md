@@ -1,13 +1,13 @@
 ## Build
 
-    ./uranium
+    poetry install
 
 ## Running Tests
 
-    ./uranium test
+    poetry run pytest intake_dal
 
 ### Run Single Test
 
-    ./uranium test -k search_item (e.g., name of test)
+    poetry run pytest intake_dal -k search_item (e.g., name of test)
 
 See https://docs.pytest.org/en/latest/usage.html for -k options

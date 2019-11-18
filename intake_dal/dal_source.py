@@ -1,5 +1,7 @@
-from urllib.parse import urlparse, ParseResult  # noqa: F401
+from typing import List
+from urllib.parse import ParseResult, urlparse  # noqa: F401
 
+import pandas as pd
 import pkg_resources
 from intake import DataSource
 from intake.catalog.local import LocalCatalogEntry
@@ -26,7 +28,7 @@ class DalSource(DataSource):
           batch: 'parquet://{{ CATALOG_DIR }}/data/user_events.parquet'
     """
 
-    container = "other"
+    container = "dataframe"
     name = "dal"
     version = pkg_resources.get_distribution("intake-dal").version
 
@@ -61,9 +63,7 @@ class DalSource(DataSource):
 
     def _instantiate_source(self):
         """ Driving method of this class. """
-        mode = self.storage[
-            self.storage_mode if self.storage_mode else self.default
-        ]
+        mode = self.storage[self.storage_mode if self.storage_mode else self.default]
 
         args = {}
         mode_url = mode
@@ -75,7 +75,9 @@ class DalSource(DataSource):
         #  - scheme is the Intake driver name.
         #  - path becomes the driver "urlpath" argument.
         parse_result = urlparse(mode_url)  # type: ParseResult
-        url_path = f"{parse_result.netloc}{parse_result.path}"
+        fragment = "" if parse_result.fragment == "" else f"#{parse_result.fragment}"
+
+        url_path = f"{parse_result.netloc}{parse_result.path}{fragment}"
         desc = self.catalog_object[self.name].describe()
 
         if parse_result.scheme == "parquet":
@@ -89,9 +91,14 @@ class DalSource(DataSource):
             driver=parse_result.scheme,
             args={"urlpath": url_path, **args},
             parameters=self.catalog_object[self.name]._user_parameters,
+            catalog=self.cat,
         )
 
-        return entry.get(metadata=self.metadata, **self.kwargs)
+        source = entry.get(metadata=self.metadata, **self.kwargs)
+
+        source.metadata["canonical_name"] = _get_dal_canonical_name(source)
+
+        return source
 
     def discover(self):
         self._get_source()
@@ -109,8 +116,25 @@ class DalSource(DataSource):
         self._get_source()
         return self.source.read_chunked()
 
+    # TODO(talebz): This should also be within Intake but without DataFrame type!
+    def write(self, df: pd.DataFrame):
+        self._get_source()
+        return self.source.write(df)
+
+    def to_spark(self):
+        self._get_source()
+        return self.source.to_spark()
+
     def to_dask(self):
         self._get_source()
         return self.source.to_dask()
 
 
+def _get_dal_canonical_name(source: DataSource) -> str:
+    def helper(source: DataSource) -> List[str]:
+        if source.cat is None:
+            return []  # the parent catalog is not part of the canonical name
+        elif source.cat:
+            return helper(source.cat) + [source.name]
+
+    return ".".join(helper(source))

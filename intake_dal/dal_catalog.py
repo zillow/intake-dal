@@ -1,13 +1,15 @@
 import pkg_resources
 import yaml
 from intake.utils import yaml_load
-from intake_nested_yaml_catalog.nested_yaml_catalog import NestedYAMLFileCatalog
+from intake_nested_yaml_catalog.nested_yaml_catalog import (
+    NestedYAMLFileCatalog,
+)
 
 
 class DalCatalog(NestedYAMLFileCatalog):
     """
     DalCatalog combines the functionality of a nested hierarchical catalog
-    along with a the "dal" DataSource.  
+    along with a the "dal" DataSource.
     """
 
     name = "dal_cat"
@@ -25,7 +27,7 @@ class DalCatalog(NestedYAMLFileCatalog):
         storage_mode: str
             The dal default storage mode override for this instantiation of the
             catalog.
-        
+
         Example catalog:
           sources:
             user_events:
@@ -46,7 +48,7 @@ class DalCatalog(NestedYAMLFileCatalog):
 
     def parse(self, text):
         data = yaml_load(text)
-        
+
         # modify sources default storage mode
         self._set_dal_default_storage_mode(data)
         transformed_text = yaml.dump(data, default_flow_style=False)
@@ -56,7 +58,7 @@ class DalCatalog(NestedYAMLFileCatalog):
         super().parse(transformed_text)
 
     def _set_dal_default_storage_mode(self, data):
-        """ 
+        """
         Traverses the catalog to set all default dal source
         storage modes to self.storage_mode
         """
