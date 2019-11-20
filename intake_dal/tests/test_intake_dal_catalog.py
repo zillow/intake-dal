@@ -59,10 +59,14 @@ def test_dal_catalog_set_storage():
     assert cat.entity.user.user_events(storage_mode="in_mem", key="second").read().iloc[0].key == "second"
     assert cat.entity.user.user_events(storage_mode="in_mem", key="second").read().iloc[0].value == 2
 
-    assert (
-        cat.entity.user.user_events(storage_mode="batch").discover()
-        == cat.entity.user.user_events(storage_mode="local").discover()
-    )
+    batch_info = cat.entity.user.user_events(storage_mode="batch").discover()["metadata"]
+    local_info = cat.entity.user.user_events(storage_mode="local").discover()["metadata"]
+
+    assert batch_info["avro_schema"] == local_info["avro_schema"]
+    assert batch_info["dtypes"] == local_info["dtypes"]
+    assert batch_info["canonical_name"] == local_info["canonical_name"]
+    assert batch_info["storage_mode"] == "batch"
+    assert local_info["storage_mode"] == "local"
 
 
 def test_dal_source_description():
@@ -132,6 +136,19 @@ def test_dtype(serving_cat):
         "timestamp": "datetime64",
         "userid": "int64",
     }
+
+
+def test_avro_schema(serving_cat):
+    ds = serving_cat.entity.user.user_events(key="a")
+    info = ds.discover()
+    avro_schema = info["metadata"]["avro_schema"]
+    assert "fields" in avro_schema
+    assert avro_schema["name"] == "Root"
+    assert avro_schema["type"] == "record"
+    assert avro_schema["fields"][0]["name"] == "userid"
+    assert avro_schema["fields"][0]["type"] == "long"
+    assert avro_schema["fields"][1]["name"] == "home_id"
+    assert avro_schema["fields"][1]["type"] == "int"
 
 
 def test_canonical_name(serving_cat):

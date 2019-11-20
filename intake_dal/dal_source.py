@@ -1,9 +1,11 @@
-from typing import List
+import json
+from typing import Dict, Iterable, List, Optional, Union
 from urllib.parse import ParseResult, urlparse  # noqa: F401
 
+import numpy as np
 import pandas as pd
 import pkg_resources
-from intake import DataSource
+from intake import DataSource, Schema
 from intake.catalog.local import LocalCatalogEntry
 
 
@@ -49,17 +51,41 @@ class DalSource(DataSource):
         self.kwargs = kwargs
         self.metadata = metadata
         self.source = None
+        self._canonical_name = None  # _get_schema() sets this
+        self._avro_schema = None  # _get_schema() sets this
 
     def _get_source(self):
         if self.catalog_object is None:
             raise ValueError("DalSource cannot be used outside a catalog")
         if self.source is None:
+            self._get_schema()
             self.source = self._instantiate_source()
             self.metadata = self.source.metadata.copy()
             self.container = self.source.container
             self.partition_access = self.source.partition_access
             self.description = self.source.description
             self.datashape = self.source.datashape
+
+    def _get_schema(self) -> Schema:
+        if self._canonical_name is None:
+
+            self._canonical_name = _get_dal_canonical_name(self)
+            # TODO(talebz): Getting avro schema should be promoted to Intake
+            self._avro_schema = _get_avro(self, self._canonical_name)
+            self._schema_dtypes = _avro_to_dtype(self._avro_schema)
+            self._dtypes = {k: str(v) for (k, v) in self._schema_dtypes.items()}
+
+        return Schema(
+            datashape=None,
+            dtype=self._dtypes,
+            shape=(None, len(self._dtypes)),
+            npartitions=1,  # This data is not partitioned, so there is only one partition
+            extra_metadata={
+                "canonical_name": self._canonical_name,
+                "storage_mode": self.storage_mode,
+                "avro_schema": self._avro_schema,
+            },
+        )
 
     def _instantiate_source(self):
         """ Driving method of this class. """
@@ -94,9 +120,18 @@ class DalSource(DataSource):
             catalog=self.cat,
         )
 
-        source = entry.get(metadata=self.metadata, **self.kwargs)
+        params = {
+            "canonical_name": self._canonical_name,
+            "storage_mode": self.storage_mode,
+            "avro_schema": self._avro_schema,
+            "dtypes": self._dtypes,
+        }
 
-        source.metadata["canonical_name"] = _get_dal_canonical_name(source)
+        source = entry.get(metadata=self.metadata, **self.kwargs)
+        # source = entry.get(metadata=self.metadata, **{**self.kwargs, **params})
+
+        source.metadata["url_path"] = url_path
+        source.metadata = {**source.metadata, **params}
 
         return source
 
@@ -138,3 +173,84 @@ def _get_dal_canonical_name(source: DataSource) -> str:
             return helper(source.cat) + [source.name]
 
     return ".".join(helper(source))
+
+
+def _get_avro(source: DataSource, canonical_name: str) -> Optional[Dict]:
+    data_schema_entry = _get_metadata_schema(source)
+
+    if "kafka_schema_registry" in data_schema_entry:
+        # TODO(talebz): check data_schema_entry for kafka_schema_registry.  If exists then query Kafka Schema Registry
+        raise NotImplementedError(
+            "kafka_schema_registry integration not yet supported.  "
+            f"Please put schema as {canonical_name}: > JSON of avro schema"
+        )
+
+    if canonical_name in data_schema_entry:
+        return json.loads(data_schema_entry[canonical_name])
+    else:
+        return None
+
+
+def _get_metadata_schema(source: DataSource) -> Dict:
+    if "data_schema" in source.metadata:
+        return source.metadata["data_schema"]
+    elif source.cat:
+        return _get_metadata_schema(source.cat)
+
+
+# TODO(talebz): ensure this is comprehensive with unit tests!
+def _avro_to_dtype(schema: Dict) -> Dict:
+    field_schemas = {f["name"]: f["type"] for f in schema["fields"]}
+    avro_type_to_dtype = {
+        tuple(sorted(["type", "long", "logicalType", "timestamp-millis"])): np.dtype("datetime64"),
+        tuple(sorted(["type", "long", "logicalType", "timestamp-micros"])): np.dtype("datetime64"),
+        tuple(sorted(["null", "int"])): np.dtype("int32"),
+        tuple(sorted(["null", "long"])): np.dtype("int32"),
+        tuple(sorted(["type", "int", "unsigned", "True"])): np.dtype("uint32"),
+        tuple(sorted(["type", "long", "unsigned", "True"])): np.dtype("int64"),
+        tuple(["long"]): np.dtype("int64"),
+        tuple(["int"]): np.dtype("int32"),
+        tuple(["float"]): np.dtype("float32"),
+        tuple(["double"]): np.dtype("float64"),
+        tuple(["boolean"]): np.dtype("bool"),
+        tuple(["string"]): np.dtype("object"),
+    }
+
+    def to_lookup(avro_type: Union[str, list]) -> tuple:
+        if isinstance(avro_type, str):
+            return tuple([avro_type])
+        elif isinstance(avro_type, list):
+            return tuple(sorted(_flatten(avro_type)))
+
+    ret = {}
+    for (k, v) in field_schemas.items():
+        lookup = to_lookup(v)
+        if lookup in avro_type_to_dtype:
+            ret[k] = avro_type_to_dtype[lookup]
+        elif "null" in lookup:
+            list_lookup = list(lookup)
+            list_lookup.remove("null")
+            new_lookup = tuple(list_lookup)
+            if new_lookup in avro_type_to_dtype:
+                ret[k] = avro_type_to_dtype[new_lookup]
+            else:
+                raise ValueError(f"{lookup} to pandas type not supported in {schema}")
+        else:
+            raise ValueError(f"{lookup} to pandas type not supported in {schema}")
+
+    return ret
+
+
+def _flatten(ls: Iterable) -> Iterable:
+    def iter_ls():
+        if isinstance(ls, dict):
+            return ls.items()
+        else:
+            return ls
+
+    for i in iter_ls():
+        if isinstance(i, Iterable) and not isinstance(i, str):
+            for sub_collection in _flatten(i):
+                yield sub_collection
+        else:
+            yield i
