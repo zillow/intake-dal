@@ -164,6 +164,16 @@ class DalSource(DataSource):
         self._get_source()
         return self.source.to_dask()
 
+    @property
+    def avro_schema(self) -> Dict:
+        self._get_source()
+        return self._avro_schema
+
+    @property
+    def canonical_name(self) -> Dict:
+        self._get_source()
+        return self._canonical_name
+
 
 def _get_dal_canonical_name(source: DataSource) -> str:
     def helper(source: DataSource) -> List[str]:
