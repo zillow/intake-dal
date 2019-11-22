@@ -1,8 +1,9 @@
 import base64
 import io
+import time
 import urllib.parse
 from http import HTTPStatus
-from typing import Dict
+from typing import Callable, Dict, List, Tuple
 from urllib.parse import ParseResult, urldefrag, urlparse  # noqa: F401
 
 import numpy as np
@@ -45,12 +46,28 @@ class DalOnlineSource(DataSource):
         self._key_value = key
         super().__init__(metadata=metadata)
 
-    def write(self, df: pd.DataFrame):
+    def write(self, df: pd.DataFrame) -> List[Tuple[float, float]]:
         self._get_schema()
-        avro_str = serialize_panda_df_to_str(df, self._avro_schema)
-        _http_put_avro_data_set(
-            self._url,
-            {"data_set_name": self._canonical_name, "key_name": self._key_name, "avro_rows": avro_str},
+
+        def post_lambda(avro_str: str) -> int:
+            return _http_put_avro_data_set(
+                self._url,
+                {"data_set_name": self._canonical_name, "key_name": self._key_name, "avro_rows": avro_str},
+            )
+
+        def get_metadata(key: str, default):
+            if DalOnlineSource.name in self.metadata:
+                return self.metadata[DalOnlineSource.name].get(key, default)
+            else:
+                return default
+
+        # get settings with defaults
+        write_chunk_size = get_metadata("write_chunk_size", default=1000)
+        write_delay_between_chunks_milliseconds = get_metadata(
+            "write_delay_between_chunks_milliseconds", default=50
+        )
+        return _post_in_chunks(
+            df, self._avro_schema, post_lambda, write_chunk_size, write_delay_between_chunks_milliseconds
         )
 
     def _get_partition(self, _) -> pd.DataFrame:
@@ -83,6 +100,34 @@ class DalOnlineSource(DataSource):
 
 
 AVRO_DATA_SETS_PATH = "avro-data-sets"
+
+
+def _post_in_chunks(
+    df: pd.DataFrame,
+    avro_schema: Dict,
+    post_lambda: Callable[[str], int],
+    write_chunk_size: int,
+    write_delay_between_chunks_milliseconds: int,
+) -> List[Tuple[float, float]]:
+    """
+    :param df: DataFrame to post
+    :param post_lambda: Lambda to pust the avro to and it returns the status code.
+    :return: list of durations of how long it took to (serialize to Avro, run post_lambda)
+    """
+    times = []
+    number_of_chunks = np.math.ceil(len(df) / write_chunk_size)
+    for i, chunk in enumerate(np.array_split(df, number_of_chunks)):
+        if i != 0:
+            time.sleep(write_delay_between_chunks_milliseconds / 1000)  # sleep takes seconds
+
+        avro_begin_time = time.time()
+        avro_str = serialize_panda_df_to_str(chunk, avro_schema)
+        avro_time = time.time() - avro_begin_time
+
+        post_begin_time = time.time()
+        post_lambda(avro_str)
+        times.append((avro_time, time.time() - post_begin_time))
+    return times
 
 
 def _http_get_avro_data_set(url: str, canonical_name: str, key_value: str) -> str:

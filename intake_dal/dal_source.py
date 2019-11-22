@@ -1,6 +1,6 @@
 import json
 from typing import Dict, Iterable, List, Optional, Union
-from urllib.parse import ParseResult, urlparse  # noqa: F401
+from urllib.parse import ParseResult, urlparse
 
 import numpy as np
 import pandas as pd
