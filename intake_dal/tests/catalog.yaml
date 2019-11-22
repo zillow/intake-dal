@@ -31,4 +31,9 @@ entity:
         date:
           description: should be '2019-08-12'
           type: str
+      metadata:
+        dal-online:
+          write_delay_between_chunks_milliseconds: 50
+          write_chunk_size: 10
+          write_parallelism: 2
 
