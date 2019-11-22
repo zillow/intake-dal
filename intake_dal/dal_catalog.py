@@ -1,9 +1,14 @@
+import functools
+
 import pkg_resources
 import yaml
+from intake import Catalog
 from intake.utils import yaml_load
 from intake_nested_yaml_catalog.nested_yaml_catalog import (
     NestedYAMLFileCatalog,
 )
+
+from intake_dal.dal_source import DalSource
 
 
 class DalCatalog(NestedYAMLFileCatalog):
@@ -46,6 +51,14 @@ class DalCatalog(NestedYAMLFileCatalog):
         self.storage_mode = storage_mode
         super(DalCatalog, self).__init__(path, autoreload, **kwargs)
 
+    def __getitem__(self, key):
+        # TODO(Taleb Zeghmi): Remove once https://github.com/zillow/intake-nested-yaml-catalog/issues/6 is resolved
+        if len(key.split(".")) > 1:
+            return self._construct_dataset(key, self)
+        else:
+            ret = super().__getitem__(key)
+            return ret
+
     def parse(self, text):
         data = yaml_load(text)
 
@@ -68,3 +81,8 @@ class DalCatalog(NestedYAMLFileCatalog):
                     v["args"]["default"] = self.storage_mode
                 elif isinstance(v, dict):
                     self._set_dal_default_storage_mode(v)
+
+    @staticmethod
+    def _construct_dataset(canonical_name: str, catalog: Catalog) -> DalSource:
+        catalog_entity = functools.reduce(lambda acc, x: acc[x], canonical_name.split("."), catalog)
+        return catalog_entity

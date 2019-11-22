@@ -139,18 +139,35 @@ def test_dtype(serving_cat):
 
 
 def test_avro_schema(serving_cat):
+    def validate_avro_schema(schema):
+        assert "fields" in schema
+        assert schema["name"] == "Root"
+        assert schema["type"] == "record"
+        assert schema["fields"][0]["name"] == "userid"
+        assert schema["fields"][0]["type"] == "long"
+        assert schema["fields"][1]["name"] == "home_id"
+        assert schema["fields"][1]["type"] == "int"
+
     ds = serving_cat.entity.user.user_events(key="a")
     info = ds.discover()
-    avro_schema = info["metadata"]["avro_schema"]
-    assert "fields" in avro_schema
-    assert avro_schema["name"] == "Root"
-    assert avro_schema["type"] == "record"
-    assert avro_schema["fields"][0]["name"] == "userid"
-    assert avro_schema["fields"][0]["type"] == "long"
-    assert avro_schema["fields"][1]["name"] == "home_id"
-    assert avro_schema["fields"][1]["type"] == "int"
+    validate_avro_schema(info["metadata"]["avro_schema"])
+    validate_avro_schema(ds.avro_schema)
 
 
 def test_canonical_name(serving_cat):
     ds = serving_cat.entity.user.user_events(key="a")
     assert ds.discover()["metadata"]["canonical_name"] == "entity.user.user_events"
+
+
+def test_construct_dataset():
+    cat = DalCatalog(catalog_path)  # default is local -> csv plugin
+
+    def validate_dataset(ds):
+        assert ds.name == "user_events"
+        assert ds.canonical_name == "entity.user.user_events"
+        assert len(ds.read()) > 0
+        assert ds.cat.cat.cat == cat
+
+    validate_dataset(cat["entity.user.user_events"])
+    validate_dataset(cat.entity["user.user_events"])
+    validate_dataset(cat.entity.user["user_events"])
