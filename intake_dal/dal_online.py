@@ -53,7 +53,7 @@ class DalOnlineSource(DataSource):
         def post_lambda(avro_str: str) -> int:
             return _http_put_avro_data_set(
                 self._url,
-                {"data_set_name": self._canonical_name, "key_name": self._key_name, "avro_rows": avro_str},
+                {"data_set_name": self._canonical_name, "key_value": self._key_name, "avro_rows": avro_str},
             )
 
         def get_metadata(key: str, default):
