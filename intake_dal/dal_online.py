@@ -1,5 +1,5 @@
 import base64
-import datetime
+from datetime import datetime
 import io
 import time
 import urllib.parse
@@ -25,6 +25,8 @@ class DalOnlineSource(DataSource):
     partition_access = False
     name = "dal-online"
     version = pkg_resources.get_distribution("intake-dal").version
+
+    __date_time_format = "%Y-%m-%d %H:%M:%S.%f"
 
     def __init__(self, urlpath, key=None, storage_options=None, metadata=None):
         """
@@ -74,10 +76,10 @@ class DalOnlineSource(DataSource):
     def _get_partition(self, _) -> pd.DataFrame:
         self._get_schema()
         data = _http_get_avro_data_set(self._url, self._canonical_name, self._key_value)
-        for item in data:
-            for key, field in item.items():
-                if isinstance(field, dict) and "DATETIME" in field:
-                    item[key] = datetime.strptime(field["time"])
+        for row in data:
+            for key, field in row.items():
+                if isinstance(field, dict) and "format" in field:
+                    row[key] = datetime.strptime(field["time"], self.__date_time_format)
         return pd.DataFrame(data)
 
     def _close(self):

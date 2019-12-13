@@ -6,9 +6,10 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+from pandas.util.testing import assert_frame_equal
 
 from intake_dal.dal_catalog import DalCatalog
-from intake_dal.dal_online import DalOnlineSource, serialize_panda_df_to_str
+from intake_dal.dal_online import DalOnlineSource, serialize_panda_df_to_str, deserialize_avro_str_to_pandas
 
 
 @pytest.fixture
@@ -30,13 +31,13 @@ def user_events_json():
             "userid": 100,
             "home_id": 3,
             "action": "click",
-            "timestamp": {"format": "DATETIME", "time": "2012-05-01T00:00:00.000000000"},
+            "timestamp": {"format": "DATETIME", "time": "2012-05-01 00:00:00.000000"},
         },
         {
             "userid": 101,
             "home_id": 4,
             "action": "click",
-            "timestamp": {"format": "DATETIME", "time": "2012-05-02T00:00:00.000000000"},
+            "timestamp": {"format": "DATETIME", "time": "2012-05-02 00:00:00.000000"},
         },
     ]
 
@@ -58,14 +59,20 @@ def test_dal_online_write_read(
     mock_put.return_value = 200
 
     serving_cat.entity.user.user_events(storage_mode="serving").write(user_events_df)
-    assert serving_cat.entity.user.user_events(key=100).read().iloc[0].userid == 100
-    assert serving_cat.entity.user.user_events(key=100).read().iloc[0].home_id == 3
 
-    assert serving_cat.entity.user.user_events(key=100).read().iloc[1].userid == 101
-    assert serving_cat.entity.user.user_events(key=100).read().iloc[1].home_id == 4
-
+    assert_frame_equal(
+        user_events_df,
+        serving_cat.entity.user.user_events(key=100).read(),
+        check_dtype=False,
+    )
     mock_get.assert_called()
     mock_put.assert_called()
+
+    assert_frame_equal(
+        user_events_df,
+        deserialize_avro_str_to_pandas(mock_put.call_args[0][1]["avro_rows"]),
+        check_dtype=False,
+    )
 
     assert avro_str != mock_put.call_args[0][1]["avro_rows"]  # not sure why!
 
