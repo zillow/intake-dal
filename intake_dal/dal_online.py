@@ -26,7 +26,7 @@ class DalOnlineSource(DataSource):
     name = "dal-online"
     version = pkg_resources.get_distribution("intake-dal").version
 
-    __date_time_format = "%Y-%m-%d %H:%M:%S.%f"
+    DATE_TIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
     def __init__(self, urlpath, key=None, storage_options=None, metadata=None):
         """
@@ -79,7 +79,7 @@ class DalOnlineSource(DataSource):
         for row in data:
             for key, field in row.items():
                 if isinstance(field, dict) and "format" in field:
-                    row[key] = datetime.strptime(field["time"], self.__date_time_format)
+                    row[key] = datetime.strptime(field["time"], self.DATE_TIME_FORMAT)
         return pd.DataFrame(data)
 
     def _close(self):
