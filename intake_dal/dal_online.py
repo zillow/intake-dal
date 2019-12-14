@@ -1,4 +1,5 @@
 import base64
+from datetime import datetime
 import io
 import time
 import urllib.parse
@@ -24,6 +25,8 @@ class DalOnlineSource(DataSource):
     partition_access = False
     name = "dal-online"
     version = pkg_resources.get_distribution("intake-dal").version
+
+    DATE_TIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
     def __init__(self, urlpath, key=None, storage_options=None, metadata=None):
         """
@@ -52,7 +55,7 @@ class DalOnlineSource(DataSource):
         def post_lambda(avro_str: str) -> int:
             return _http_put_avro_data_set(
                 self._url,
-                {"data_set_name": self._canonical_name, "key_name": self._key_name, "avro_rows": avro_str},
+                {"data_set_name": self._canonical_name, "key_value": self._key_name, "avro_rows": avro_str},
             )
 
         def get_metadata(key: str, default):
@@ -72,9 +75,12 @@ class DalOnlineSource(DataSource):
 
     def _get_partition(self, _) -> pd.DataFrame:
         self._get_schema()
-        return deserialize_avro_str_to_pandas(
-            _http_get_avro_data_set(self._url, self._canonical_name, self._key_value), self._avro_schema
-        )
+        data = _http_get_avro_data_set(self._url, self._canonical_name, self._key_value)
+        for row in data:
+            for key, field in row.items():
+                if isinstance(field, dict) and "format" in field:
+                    row[key] = datetime.strptime(field["time"], self.DATE_TIME_FORMAT)
+        return pd.DataFrame(data)
 
     def _close(self):
         pass
@@ -130,11 +136,11 @@ def _post_in_chunks(
     return times
 
 
-def _http_get_avro_data_set(url: str, canonical_name: str, key_value: str) -> str:
+def _http_get_avro_data_set(url: str, canonical_name: str, key_value: str) -> List[Dict]:
     response = requests.get(urllib.parse.urljoin(url, f"{AVRO_DATA_SETS_PATH}/{canonical_name}/{key_value}"))
     if response.status_code != HTTPStatus.OK.value:
         raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
-    return response.json()["avro_rows"]
+    return response.json()["data"]
 
 
 def _http_put_avro_data_set(url: str, json: Dict) -> int:

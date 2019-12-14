@@ -4,9 +4,7 @@ import pkg_resources
 import yaml
 from intake import Catalog
 from intake.utils import yaml_load
-from intake_nested_yaml_catalog.nested_yaml_catalog import (
-    NestedYAMLFileCatalog,
-)
+from intake_nested_yaml_catalog.nested_yaml_catalog import NestedYAMLFileCatalog
 
 from intake_dal.dal_source import DalSource
 
