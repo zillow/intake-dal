@@ -1,8 +1,8 @@
 import base64
-from datetime import datetime
 import io
 import time
 import urllib.parse
+from datetime import datetime
 from http import HTTPStatus
 from typing import Callable, Dict, List, Tuple
 from urllib.parse import ParseResult, urldefrag, urlparse  # noqa: F401

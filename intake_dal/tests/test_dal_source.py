@@ -1,3 +1,8 @@
+from urllib.parse import urlparse
+
+from intake_dal.dal_source import DalSource
+
+
 def test_dal_source_description(cat):
     assert cat.entity.user.user_events.description == "user_events description"
 
@@ -33,3 +38,17 @@ def test_avro_schema(serving_cat):
 def test_canonical_name(serving_cat):
     ds = serving_cat.entity.user.user_events(key="a")
     assert ds.discover()["metadata"]["canonical_name"] == "entity.user.user_events"
+
+
+def test_parse_storage_mode_url():
+    def validate_url(url: str, expected: str):
+        assert DalSource.parse_storage_mode_url(url) == (urlparse(url), expected)
+
+    validate_url("csv://{{ CATALOG_DIR }}/data/user_events.csv", "{{ CATALOG_DIR }}/data/user_events.csv")
+
+    validate_url("dal-online://http://0.0.0.0:9166#zpid", "http://0.0.0.0:9166#zpid")
+
+    validate_url(
+        "hive://user_events_dal_catalog2;userid={{userid}}?q1=v1#fragment",
+        "user_events_dal_catalog2;userid={{userid}}?q1=v1#fragment",
+    )

@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, urlparse
 
 import numpy as np
@@ -87,6 +87,29 @@ class DalSource(DataSource):
             },
         )
 
+    @staticmethod
+    def parse_storage_mode_url(mode_url: str) -> Tuple[ParseResult, str]:
+        """
+        :param mode_url:
+            scheme is the Intake driver name.
+            examples:
+              - "csv://{{ CATALOG_DIR }}/data/user_events.csv"
+              - "dal-online://http://0.0.0.0:9166#zpid"
+              - "hive://user_events_dal_catalog2;userid={{userid}}"
+        :return:
+            parse_result and url_path without the scheme, this is sent to the DataSource
+            examples:
+              - "{{ CATALOG_DIR }}/data/user_events.csv"
+              - "http://0.0.0.0:9166#zpid"
+              - "user_events_dal_catalog2;userid={{userid}}"
+        """
+        parse_result: ParseResult = urlparse(mode_url)
+        fragment = "" if parse_result.fragment == "" else f"#{parse_result.fragment}"
+        query = "" if parse_result.query == "" else f"?{parse_result.query}"
+
+        url_path = f"{parse_result.netloc}{parse_result.path}{parse_result.params}{query}{fragment}"
+        return parse_result, url_path
+
     def _instantiate_source(self):
         """ Driving method of this class. """
         mode = self.storage[self.storage_mode if self.storage_mode else self.default]
@@ -97,13 +120,7 @@ class DalSource(DataSource):
             mode_url = mode["url"]
             args = mode.get("args", {})
 
-        # of form: 'csv://{{ CATALOG_DIR }}/data/user_events.csv' where
-        #  - scheme is the Intake driver name.
-        #  - path becomes the driver "urlpath" argument.
-        parse_result = urlparse(mode_url)  # type: ParseResult
-        fragment = "" if parse_result.fragment == "" else f"#{parse_result.fragment}"
-
-        url_path = f"{parse_result.netloc}{parse_result.path}{fragment}"
+        parse_result, url_path = self.parse_storage_mode_url(mode_url)
         desc = self.catalog_object[self.name].describe()
 
         if parse_result.scheme == "parquet":

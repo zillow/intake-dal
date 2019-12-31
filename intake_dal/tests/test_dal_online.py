@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import List, Dict
+from typing import Dict, List
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -9,7 +9,11 @@ import pytest
 from pandas.util.testing import assert_frame_equal
 
 from intake_dal.dal_catalog import DalCatalog
-from intake_dal.dal_online import DalOnlineSource, serialize_panda_df_to_str, deserialize_avro_str_to_pandas
+from intake_dal.dal_online import (
+    DalOnlineSource,
+    deserialize_avro_str_to_pandas,
+    serialize_panda_df_to_str,
+)
 
 
 @pytest.fixture
@@ -60,11 +64,7 @@ def test_dal_online_write_read(
 
     serving_cat.entity.user.user_events(storage_mode="serving").write(user_events_df)
 
-    assert_frame_equal(
-        user_events_df,
-        serving_cat.entity.user.user_events(key=100).read(),
-        check_dtype=False,
-    )
+    assert_frame_equal(user_events_df, serving_cat.entity.user.user_events(key=100).read(), check_dtype=False)
     mock_get.assert_called()
     mock_put.assert_called()
 
