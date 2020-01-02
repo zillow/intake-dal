@@ -3,13 +3,13 @@ import io
 import time
 import urllib.parse
 from datetime import datetime
+import pyarrow as pa
 from http import HTTPStatus
 from typing import Callable, Dict, List, Tuple
 from urllib.parse import ParseResult, urldefrag, urlparse  # noqa: F401
 
 import numpy as np
 import pandas as pd
-import pandavro
 import pkg_resources
 import requests
 from intake import DataSource, Schema
@@ -106,6 +106,7 @@ class DalOnlineSource(DataSource):
 
 
 AVRO_DATA_SETS_PATH = "avro-data-sets"
+AVRO_DATA_SETS_ARROW_PATH = "avro-data-sets/arrow"
 
 
 def _post_in_chunks(
@@ -127,7 +128,7 @@ def _post_in_chunks(
             time.sleep(write_delay_between_chunks_milliseconds / 1000)  # sleep takes seconds
 
         avro_begin_time = time.time()
-        avro_str = serialize_panda_df_to_str(chunk, avro_schema)
+        avro_str = serialize_panda_df_to_arrow(chunk, avro_schema)
         avro_time = time.time() - avro_begin_time
 
         post_begin_time = time.time()
@@ -144,22 +145,24 @@ def _http_get_avro_data_set(url: str, canonical_name: str, key_value: str) -> Li
 
 
 def _http_put_avro_data_set(url: str, json: Dict) -> int:
-    response = requests.put(urllib.parse.urljoin(url, f"{AVRO_DATA_SETS_PATH}/"), json=json)
+    response = requests.put(urllib.parse.urljoin(url, f"{AVRO_DATA_SETS_ARROW_PATH}/"), json=json)
     if response.status_code != HTTPStatus.OK.value:
         raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
     return response.status_code
 
 
-def serialize_panda_df_to_str(df: pd.DataFrame, schema: Dict) -> str:
-    with io.BytesIO() as bytes_io:
-        # else we get: ValueError: NaTType does not support timestamp
-        # it's really a pandavro issue, see https://github.com/fastavro/fastavro/issues/313
-        # TODO(talebz): Create a Pandavro issue for this!
+def serialize_panda_df_to_arrow(df: pd.DataFrame, schema: Dict) -> str:
+    with io.BytesIO() as sink:
         df = df.replace({np.nan: None})
-        pandavro.to_avro(bytes_io, df, schema=schema)
-        bytes_io.seek(0)
-        return base64.b64encode(bytes_io.read()).decode("utf-8")
+        batch = pa.RecordBatch.from_pandas(df)
+        with pa.RecordBatchStreamWriter(sink, batch.schema) as writer:
+            writer.write_batch(batch)
+        buf = sink.getvalue()
+        return base64.b64encode(buf).decode("utf-8")
 
 
 def deserialize_avro_str_to_pandas(avro_str: str, schema: dict = None) -> pd.DataFrame:
-    return pandavro.from_avro(io.BytesIO(base64.b64decode(avro_str)), schema)
+    print(f"trying to sdeser {avro_str}")
+    arrow_bytes = base64.b64decode(avro_str)
+    return pa.ipc.open_stream(arrow_bytes).read_pandas()
+
