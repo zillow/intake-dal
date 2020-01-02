@@ -52,7 +52,7 @@ def test_dal_online_write_read(
     user_events_json: List[Dict],
 ):
     canonical_name = "entity.user.user_events"
-    avro_str = serialize_panda_df_to_arrow(
+    serialize_panda_df_to_arrow(
         user_events_df, schema=json.loads(serving_cat.metadata["data_schema"][canonical_name])
     )
     mock_get.return_value = user_events_json

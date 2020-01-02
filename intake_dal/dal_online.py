@@ -165,4 +165,3 @@ def deserialize_avro_str_to_pandas(avro_str: str, schema: dict = None) -> pd.Dat
     print(f"trying to sdeser {avro_str}")
     arrow_bytes = base64.b64decode(avro_str)
     return pa.ipc.open_stream(arrow_bytes).read_pandas()
-
