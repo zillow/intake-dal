@@ -40,6 +40,18 @@ def test_canonical_name(serving_cat):
     assert ds.discover()["metadata"]["canonical_name"] == "entity.user.user_events"
 
 
+def test_dataset_without_avro_and_engine_arg(serving_cat):
+    """Tests an entry in the catalog without an AVRO, and tests engine arg"""
+    ds: DalSource = serving_cat.dataset_without_avro(storage_mode="batch")
+
+    # force the DalSource to instantiate the private source object
+    ds.discover()
+
+    # ensure that the engine argument is passed along to the DalSource instantiated source object
+    assert ds.source._captured_init_kwargs['engine'] == 'fastparquet'
+    assert not ds.source._captured_init_kwargs['gather_statistics']
+
+
 def test_parse_storage_mode_url():
     def validate_url(url: str, expected: str):
         assert DalSource.parse_storage_mode_url(url) == (urlparse(url), expected)
