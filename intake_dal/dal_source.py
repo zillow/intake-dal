@@ -53,6 +53,7 @@ class DalSource(DataSource):
         self.source = None
         self._canonical_name = None  # _get_schema() sets this
         self._avro_schema = None  # _get_schema() sets this
+        self._dtypes = None  # _get_schema() sets this
 
     def _get_source(self):
         if self.catalog_object is None:
@@ -71,14 +72,16 @@ class DalSource(DataSource):
 
             self._canonical_name = _get_dal_canonical_name(self)
             # TODO(talebz): Getting avro schema should be promoted to Intake
-            self._avro_schema = _get_avro(self, self._canonical_name)
-            self._schema_dtypes = _avro_to_dtype(self._avro_schema)
-            self._dtypes = {k: str(v) for (k, v) in self._schema_dtypes.items()}
+            avro_schema = _get_avro(self, self._canonical_name)
+            if avro_schema:
+                self._avro_schema = avro_schema
+                self._schema_dtypes = _avro_to_dtype(self._avro_schema)
+                self._dtypes = {k: str(v) for (k, v) in self._schema_dtypes.items()}
 
         return Schema(
             datashape=None,
             dtype=self._dtypes,
-            shape=(None, len(self._dtypes)),
+            shape=(None, len(self._dtypes) if self._dtypes else None),
             npartitions=1,  # This data is not partitioned, so there is only one partition
             extra_metadata={
                 "canonical_name": self._canonical_name,
@@ -125,8 +128,11 @@ class DalSource(DataSource):
 
         if parse_result.scheme == "parquet":
             # https://github.com/dask/dask/issues/5272: Dask parquet metadata w/ ~2k files very slow
-            args["gather_statistics"] = False
-            args["engine"] = "pyarrow"
+            if "gather_statistics" not in args:
+                args["gather_statistics"] = False
+
+            if "engine" not in args:
+                args["engine"] = "pyarrow"
 
         entry = LocalCatalogEntry(
             name=desc["name"],
@@ -204,6 +210,8 @@ def _get_dal_canonical_name(source: DataSource) -> str:
 
 def _get_avro(source: DataSource, canonical_name: str) -> Optional[Dict]:
     data_schema_entry = _get_metadata_schema(source)
+    if data_schema_entry is None:
+        return None
 
     if "kafka_schema_registry" in data_schema_entry:
         # TODO(talebz): check data_schema_entry for kafka_schema_registry.  If exists then query Kafka Schema Registry

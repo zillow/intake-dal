@@ -36,4 +36,11 @@ entity:
           write_delay_between_chunks_milliseconds: 50
           write_chunk_size: 10
           write_parallelism: 2
-
+dataset_without_avro:
+  driver: dal
+  args:
+    storage:
+      batch:
+        url: 'parquet://{{ CATALOG_DIR }}/data/user_events.parquet'
+        args:
+          engine: 'fastparquet'
