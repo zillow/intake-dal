@@ -15,5 +15,10 @@
 Run all pre commit checks (isort, black, flake8, pytest)
 
     poetry run pre-commit run --all-files
+    
+### Publish to PyPi
+    
+    poetry build
+    poetry publish
 
 See https://docs.pytest.org/en/latest/usage.html for -k options
