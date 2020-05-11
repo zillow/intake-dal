@@ -75,7 +75,12 @@ class DalOnlineSource(DataSource):
 
     def _get_partition(self, _) -> pd.DataFrame:
         self._get_schema()
-        data = _http_get_avro_data_set(self._url, self._canonical_name, self._key_value)
+        if isinstance(self._key_value, list):
+            massaged_key = ",".join(map(str, self._key_value))
+        else:
+            massaged_key = self._key_value
+
+        data = _http_get_avro_data_set(self._url, self._canonical_name, massaged_key)
         for row in data:
             for key, field in row.items():
                 if isinstance(field, dict) and "format" in field:

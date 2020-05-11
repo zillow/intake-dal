@@ -107,3 +107,16 @@ def test_post_in_chunks(mock_put: MagicMock, serving_cat: DalCatalog, user_event
 
     assert len(mock_put.call_args_list) == 2
     assert len(ret) == 2
+
+
+@mock.patch("intake_dal.dal_online._http_get_avro_data_set")
+def test_dal_online_multi_key_read(
+    mock_get: MagicMock,
+    serving_cat: DalCatalog,
+    user_events_df: pd.DataFrame,
+    user_events_json: List[Dict],
+):
+    mock_get.return_value = user_events_json
+
+    assert_frame_equal(user_events_df, serving_cat.entity.user.user_events(key=[100, 101]).read(), check_dtype=False)
+    mock_get.assert_called()
