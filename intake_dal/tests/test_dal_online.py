@@ -29,6 +29,18 @@ def user_events_df():
 
 
 @pytest.fixture
+def user_events_with_missing_entries_df():
+    return pd.DataFrame(
+        {
+            "userid": [100, None, 101],
+            "home_id": [3, None, 4],
+            "action": ["click", None, "click"],
+            "timestamp": [datetime.datetime(2012, 5, 1, 0, 0), None, datetime.datetime(2012, 5, 2, 0, 0)],
+        }
+    )
+
+
+@pytest.fixture
 def user_events_json():
     return [
         {
@@ -46,14 +58,33 @@ def user_events_json():
     ]
 
 
+@pytest.fixture()
+def user_events_multi_key_with_some_missing_entries_json():
+    return [
+        {
+            "userid": 100,
+            "home_id": 3,
+            "action": "click",
+            "timestamp": {"format": "DATETIME", "time": "2012-05-01 00:00:00.000000"},
+        },
+        {},
+        {
+            "userid": 101,
+            "home_id": 4,
+            "action": "click",
+            "timestamp": {"format": "DATETIME", "time": "2012-05-02 00:00:00.000000"},
+        },
+    ]
+
+
 @mock.patch("intake_dal.dal_online._http_put_avro_data_set")
 @mock.patch("intake_dal.dal_online._http_get_avro_data_set")
 def test_dal_online_write_read(
-    mock_get: MagicMock,
-    mock_put: MagicMock,
-    serving_cat: DalCatalog,
-    user_events_df: pd.DataFrame,
-    user_events_json: List[Dict],
+        mock_get: MagicMock,
+        mock_put: MagicMock,
+        serving_cat: DalCatalog,
+        user_events_df: pd.DataFrame,
+        user_events_json: List[Dict],
 ):
     canonical_name = "entity.user.user_events"
     avro_str = serialize_panda_df_to_str(
@@ -86,14 +117,14 @@ def test_dal_online_write_read(
 
 def test_dal_write_parallelism(serving_cat: DalCatalog):
     assert (
-        serving_cat["entity.user.user_events"].discover()["metadata"][DalOnlineSource.name][
-            "write_parallelism"
-        ]
-        == 2
+            serving_cat["entity.user.user_events"].discover()["metadata"][DalOnlineSource.name][
+                "write_parallelism"
+            ]
+            == 2
     )
     assert (
-        serving_cat.entity.user.user_events.discover()["metadata"][DalOnlineSource.name]["write_parallelism"]
-        == 2
+            serving_cat.entity.user.user_events.discover()["metadata"][DalOnlineSource.name]["write_parallelism"]
+            == 2
     )
 
 
@@ -111,12 +142,26 @@ def test_post_in_chunks(mock_put: MagicMock, serving_cat: DalCatalog, user_event
 
 @mock.patch("intake_dal.dal_online._http_get_avro_data_set")
 def test_dal_online_multi_key_read(
-    mock_get: MagicMock,
-    serving_cat: DalCatalog,
-    user_events_df: pd.DataFrame,
-    user_events_json: List[Dict],
+        mock_get: MagicMock,
+        serving_cat: DalCatalog,
+        user_events_df: pd.DataFrame,
+        user_events_json: List[Dict],
 ):
     mock_get.return_value = user_events_json
 
     assert_frame_equal(user_events_df, serving_cat.entity.user.user_events(key=[100, 101]).read(), check_dtype=False)
+    mock_get.assert_called()
+
+
+@mock.patch("intake_dal.dal_online._http_get_avro_data_set")
+def test_dal_online_multi_key_read_with_missing_entries(
+        mock_get: MagicMock,
+        serving_cat: DalCatalog,
+        user_events_with_missing_entries_df: pd.DataFrame,
+        user_events_multi_key_with_some_missing_entries_json: List[Dict],
+):
+    mock_get.return_value = user_events_multi_key_with_some_missing_entries_json
+
+    assert_frame_equal(user_events_with_missing_entries_df, serving_cat.entity.user.user_events(key=[1, 2, 3]).read(),
+                       check_dtype=False)
     mock_get.assert_called()
