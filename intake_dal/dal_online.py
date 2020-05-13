@@ -2,6 +2,7 @@ import base64
 import io
 import time
 import urllib.parse
+from collections import Iterable
 from datetime import datetime
 from http import HTTPStatus
 from typing import Callable, Dict, List, Tuple
@@ -74,8 +75,16 @@ class DalOnlineSource(DataSource):
         )
 
     def _get_partition(self, _) -> pd.DataFrame:
+
+        def http_get_argument():
+            if isinstance(self._key_value, Iterable):
+                return ",".join(map(str, self._key_value))
+            else:
+                return self._key_value
+
         self._get_schema()
-        data = _http_get_avro_data_set(self._url, self._canonical_name, self._key_value)
+
+        data = _http_get_avro_data_set(self._url, self._canonical_name, http_get_argument())
         for row in data:
             for key, field in row.items():
                 if isinstance(field, dict) and "format" in field:
