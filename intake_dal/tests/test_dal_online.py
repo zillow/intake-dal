@@ -175,6 +175,7 @@ def test_dal_online_multi_key_read(
 
     assert_frame_equal(user_events_df, serving_cat.entity.user.user_events(key=[100, 101]).read(), check_dtype=False)
     mock_get.assert_called()
+    assert (mock_get.call_args_list[0] == [('https://featurestore.url.net', 'entity.user.user_events', '100,101')])
 
 
 @mock.patch("intake_dal.dal_online._http_get_avro_data_set")
@@ -189,6 +190,7 @@ def test_dal_online_multi_key_read_with_missing_entries(
     assert_frame_equal(user_events_with_missing_entries_df, serving_cat.entity.user.user_events(key=[1, 2, 3]).read(),
                        check_dtype=False)
     mock_get.assert_called()
+    assert (mock_get.call_args_list[0] == [('https://featurestore.url.net', 'entity.user.user_events', '1,2,3')])
 
 
 @mock.patch("intake_dal.dal_online._http_get_avro_data_set")
@@ -200,6 +202,8 @@ def test_dal_online_key_as_string(
 ):
     mock_get.return_value = user_single_event_json
 
-    assert_frame_equal(user_single_event_df, serving_cat.entity.user.user_events(key="1").read(),
+    assert_frame_equal(user_single_event_df, serving_cat.entity.user.user_events(key="123").read(),
                        check_dtype=False)
     mock_get.assert_called()
+    assert len(mock_get.call_args_list) == 1
+    assert(mock_get.call_args_list[0] == [('https://featurestore.url.net', 'entity.user.user_events', '123')])
