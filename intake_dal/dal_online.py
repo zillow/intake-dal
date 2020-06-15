@@ -77,7 +77,7 @@ class DalOnlineSource(DataSource):
     def _get_partition(self, _) -> pd.DataFrame:
 
         def http_get_argument():
-            if isinstance(self._key_value, Iterable):
+            if isinstance(self._key_value, Iterable) and not isinstance(self._key_value, str):
                 return ",".join(map(str, self._key_value))
             else:
                 return self._key_value
