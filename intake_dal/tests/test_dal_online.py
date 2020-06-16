@@ -77,6 +77,30 @@ def user_events_multi_key_with_some_missing_entries_json():
     ]
 
 
+@pytest.fixture
+def user_single_event_json():
+    return [
+        {
+            "userid": 1,
+            "home_id": 3,
+            "action": "click",
+            "timestamp": {"format": "DATETIME", "time": "2012-05-01 00:00:00.000000"},
+        }
+    ]
+
+
+@pytest.fixture
+def user_single_event_df():
+    return pd.DataFrame(
+        {
+            "userid": [1],
+            "home_id": [3],
+            "action": ["click"],
+            "timestamp": [datetime.datetime(2012, 5, 1, 0, 0)]
+        }
+    )
+
+
 @mock.patch("intake_dal.dal_online._http_put_avro_data_set")
 @mock.patch("intake_dal.dal_online._http_get_avro_data_set")
 def test_dal_online_write_read(
@@ -151,6 +175,7 @@ def test_dal_online_multi_key_read(
 
     assert_frame_equal(user_events_df, serving_cat.entity.user.user_events(key=[100, 101]).read(), check_dtype=False)
     mock_get.assert_called()
+    assert (mock_get.call_args_list[0] == [('https://featurestore.url.net', 'entity.user.user_events', '100,101')])
 
 
 @mock.patch("intake_dal.dal_online._http_get_avro_data_set")
@@ -165,3 +190,20 @@ def test_dal_online_multi_key_read_with_missing_entries(
     assert_frame_equal(user_events_with_missing_entries_df, serving_cat.entity.user.user_events(key=[1, 2, 3]).read(),
                        check_dtype=False)
     mock_get.assert_called()
+    assert (mock_get.call_args_list[0] == [('https://featurestore.url.net', 'entity.user.user_events', '1,2,3')])
+
+
+@mock.patch("intake_dal.dal_online._http_get_avro_data_set")
+def test_dal_online_key_as_string(
+        mock_get: MagicMock,
+        serving_cat: DalCatalog,
+        user_single_event_df: pd.DataFrame,
+        user_single_event_json: List[Dict],
+):
+    mock_get.return_value = user_single_event_json
+
+    assert_frame_equal(user_single_event_df, serving_cat.entity.user.user_events(key="123").read(),
+                       check_dtype=False)
+    mock_get.assert_called()
+    assert len(mock_get.call_args_list) == 1
+    assert(mock_get.call_args_list[0] == [('https://featurestore.url.net', 'entity.user.user_events', '123')])
