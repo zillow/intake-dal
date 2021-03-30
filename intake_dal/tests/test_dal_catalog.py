@@ -1,5 +1,5 @@
+import yaml
 import pandas as pd
-
 from intake_dal.dal_catalog import DalCatalog
 
 
@@ -69,3 +69,17 @@ def test_construct_dataset(cat):
     validate_dataset(cat["entity.user.user_events"])
     validate_dataset(cat.entity["user.user_events"])
     validate_dataset(cat.entity.user["user_events"])
+
+
+def test_dal_catalog_passing_dict(remote_catalog_path):
+    with open(remote_catalog_path, 'r') as f:
+        data = yaml.load(f)
+
+    # Instead of passing path, passes the catalog data read from the file.
+    cat = DalCatalog(catalog_data=data, storage_mode="golden")
+
+    assert cat.entity.property.user_event.default == "golden"
+    assert cat.entity.property.user_dataset.default == "golden"
+
+    assert len(cat.entity.property.user_event.storage) == 2
+    assert len(cat.entity.property.user_dataset.storage) == 2

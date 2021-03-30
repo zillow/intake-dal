@@ -20,13 +20,16 @@ class DalCatalog(NestedYAMLFileCatalog):
     name = "dal_cat"
     version = pkg_resources.get_distribution("intake-dal").version
 
-    def __init__(self, path, storage_mode=None, autoreload=True, **kwargs):
+    def __init__(self, path=None, catalog_data=None, storage_mode=None, autoreload=True, **kwargs):
         """
         Parameters
         ----------
         path: str
             Location of the file to parse (can be remote)
-        reload : bool
+        catalog_data: dict
+            If catalog data is in memory, pass it thru `catalog_data` to populate intake catalog.
+            If dataset/catalog is in the local or a specific url is given, please use `path` argument.
+        reload: bool
             Whether to watch the source file for changes; make False if you want
             an editable Catalog
         storage_mode: str
@@ -49,7 +52,18 @@ class DalCatalog(NestedYAMLFileCatalog):
         >>> df = cat.user_events.read()
         """
         self.storage_mode = storage_mode
-        super(DalCatalog, self).__init__(path, autoreload, **kwargs)
+
+        self.is_path = False
+        if catalog_data and not path:
+            # A user passes catalog data, not passes path info.
+            self.path_or_catalog = catalog_data
+        else:
+            # A user passes path and url.
+            # In this case, ignore catalog_data.
+            self.path_or_catalog = path
+            self.is_path = True
+
+        super(DalCatalog, self).__init__(self.path_or_catalog, autoreload, **kwargs)
 
     def __getitem__(self, key):
         # TODO(Taleb Zeghmi): Remove once https://github.com/zillow/intake-nested-yaml-catalog/issues/6 is resolved
@@ -58,6 +72,16 @@ class DalCatalog(NestedYAMLFileCatalog):
         else:
             ret = super().__getitem__(key)
             return ret
+
+    def _load(self, reload=False):
+        if self.is_path:
+            # File path or url. Load and parse.
+            super()._load()
+        else:
+            # It's catalog data and not requires directory/url information.
+            # Set self._dir to an empty value
+            self._dir = ""
+            self.parse(yaml.dump(self.path_or_catalog))
 
     def parse(self, text):
         data = yaml_load(text)
