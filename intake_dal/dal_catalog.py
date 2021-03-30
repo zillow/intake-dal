@@ -27,8 +27,8 @@ class DalCatalog(NestedYAMLFileCatalog):
         path: str
             Location of the file to parse (can be remote)
         catalog_data: dict
-            If catalog data is in memory, pass it thru `catalog_data` to populate intake catalog.
-            If dataset/catalog is in the local or a specific url is given, please use `path` argument.
+            If catalog data is in memory, pass it through `catalog_data` to populate the intake catalog.
+            If the dataset/catalog is in the local or a specific url is given, please use the `path` argument.
         reload: bool
             Whether to watch the source file for changes; make False if you want
             an editable Catalog
