@@ -1,4 +1,5 @@
 import yaml
+import pytest
 import pandas as pd
 
 from intake_dal.dal_catalog import DalCatalog
@@ -32,7 +33,58 @@ def test_dal_catalog_default_storage_parameter(cat):
 
 def test_dal_catalog_set_storage(catalog_path):
     cat = DalCatalog(catalog_path, storage_mode="batch")
+    validate_catalog_from_path(cat)
 
+
+def test_dal_online_key_value_on_read(serving_cat: DalCatalog):
+    serving_cat.entity.user.user_events(storage_mode="in_mem", key="first").read()
+    pass
+
+
+def test_construct_dataset(cat):
+    def validate_dataset(ds):
+        assert ds.name == "user_events"
+        assert ds.canonical_name == "entity.user.user_events"
+        assert len(ds.read()) > 0
+        assert ds.cat.cat.cat == cat
+
+    validate_dataset(cat["entity.user.user_events"])
+    validate_dataset(cat.entity["user.user_events"])
+    validate_dataset(cat.entity.user["user_events"])
+
+
+def test_dal_catalog_with_catalog_data(remote_catalog_path):
+    with open(remote_catalog_path, 'r') as f:
+        data = yaml.load(f)
+
+    # Instead of passing path, passes the catalog data read from the file.
+    cat = DalCatalog("", storage_mode="golden", catalog_data=data)
+
+    assert cat.entity.property.user_event.default == "golden"
+    assert cat.entity.property.user_dataset.default == "golden"
+
+    assert len(cat.entity.property.user_event.storage) == 2
+    assert len(cat.entity.property.user_dataset.storage) == 2
+
+
+def test_dal_catalog_with_both_path_and_catalog_data(catalog_path, remote_catalog_path):
+    # Path has a priority. Should use `path` and ignore `catalog_data`
+
+    with open(remote_catalog_path, 'r') as f:
+        data = yaml.load(f)
+
+    # Passing path and catalog data together. Should use `path`
+    cat = DalCatalog(catalog_path, storage_mode="batch", catalog_data=data)
+    validate_catalog_from_path(cat)
+
+
+def test_dal_catalog_with_empty_path():
+    # Passing an empty path and an empty catalog_data. Expect exception is raised
+    with pytest.raises(IsADirectoryError):
+        DalCatalog("", storage_mode="batch", catalog_data="")
+
+
+def validate_catalog_from_path(cat):
     # ensure it's reading the batch storage
     assert cat.entity.user.user_events().read().head().shape[0] == 1
 
@@ -53,34 +105,3 @@ def test_dal_catalog_set_storage(catalog_path):
     assert batch_info["canonical_name"] == local_info["canonical_name"]
     assert batch_info["storage_mode"] == "batch"
     assert local_info["storage_mode"] == "local"
-
-
-def test_dal_online_key_value_on_read(serving_cat: DalCatalog):
-    serving_cat.entity.user.user_events(storage_mode="in_mem", key="first").read()
-    pass
-
-
-def test_construct_dataset(cat):
-    def validate_dataset(ds):
-        assert ds.name == "user_events"
-        assert ds.canonical_name == "entity.user.user_events"
-        assert len(ds.read()) > 0
-        assert ds.cat.cat.cat == cat
-
-    validate_dataset(cat["entity.user.user_events"])
-    validate_dataset(cat.entity["user.user_events"])
-    validate_dataset(cat.entity.user["user_events"])
-
-
-def test_dal_catalog_passing_dict(remote_catalog_path):
-    with open(remote_catalog_path, 'r') as f:
-        data = yaml.load(f)
-
-    # Instead of passing path, passes the catalog data read from the file.
-    cat = DalCatalog(catalog_data=data, storage_mode="golden")
-
-    assert cat.entity.property.user_event.default == "golden"
-    assert cat.entity.property.user_dataset.default == "golden"
-
-    assert len(cat.entity.property.user_event.storage) == 2
-    assert len(cat.entity.property.user_dataset.storage) == 2

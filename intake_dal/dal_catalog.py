@@ -20,15 +20,12 @@ class DalCatalog(NestedYAMLFileCatalog):
     name = "dal_cat"
     version = pkg_resources.get_distribution("intake-dal").version
 
-    def __init__(self, path=None, catalog_data=None, storage_mode=None, autoreload=True, **kwargs):
+    def __init__(self, path, storage_mode=None, autoreload=True, **kwargs):
         """
         Parameters
         ----------
         path: str
             Location of the file to parse (can be remote)
-        catalog_data: dict
-            If catalog data is in memory, pass it through `catalog_data` to populate the intake catalog.
-            If the dataset/catalog is in the local or a specific url is given, please use the `path` argument.
         reload : bool
             Whether to watch the source file for changes; make False if you want
             an editable Catalog
@@ -51,16 +48,22 @@ class DalCatalog(NestedYAMLFileCatalog):
         >>> cat = DalCatalog(path, storage_mode="serving")
         >>> df = cat.user_events.read()
         """
+
         self.storage_mode = storage_mode
         self.is_path = False
-        if catalog_data and not path:
-            # A user passes catalog data, not passes path info.
-            self.path_or_catalog = catalog_data
+
+        if kwargs.get('catalog_data') and not path:
+            # A user passes catalog object thru 'catalog_data'
+            # If you have a file or url for the datasets, please use the `path` argument.
+            self.path_or_catalog = kwargs.get('catalog_data')
         else:
-            # A user passes path and url.
-            # In this case, ignore catalog_data.
+            # A user passes path and url. In this case, ignore catalog_data.
             self.path_or_catalog = path
             self.is_path = True
+
+        # Remove 'catalog_data'. It is not required in the parent class
+        if 'catalog_data' in kwargs:
+            kwargs.pop('catalog_data')
 
         super(DalCatalog, self).__init__(self.path_or_catalog, autoreload, **kwargs)
 
