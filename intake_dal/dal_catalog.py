@@ -50,22 +50,24 @@ class DalCatalog(NestedYAMLFileCatalog):
         """
 
         self.storage_mode = storage_mode
-        self.is_path = False
+        self.yaml_catalog = None
 
-        if kwargs.get('catalog_data') and not path:
-            # A user passes catalog object thru 'catalog_data'
+        if kwargs.get('yaml_catalog') and not path:
+            # A user passes catalog object thru 'yaml_catalog'
             # If you have a file or url for the datasets, please use the `path` argument.
-            self.path_or_catalog = kwargs.get('catalog_data')
+            self.yaml_catalog = kwargs.get('yaml_catalog')
+
+            # Put empty value. Not read catalog data from the path
+            self.path = ""
         else:
-            # A user passes path and url. In this case, ignore catalog_data.
-            self.path_or_catalog = path
-            self.is_path = True
+            # A user passes path and url. In this case, ignore yaml_catalog.
+            self.path = path
 
-        # Remove 'catalog_data'. It is not required in the parent class
-        if 'catalog_data' in kwargs:
-            kwargs.pop('catalog_data')
+        # Remove 'yaml_catalog'. It is not required in the parent class
+        if 'yaml_catalog' in kwargs:
+            kwargs.pop('yaml_catalog')
 
-        super(DalCatalog, self).__init__(self.path_or_catalog, autoreload, **kwargs)
+        super(DalCatalog, self).__init__(self.path, autoreload, **kwargs)
 
     def __getitem__(self, key):
         # TODO(Taleb Zeghmi): Remove once https://github.com/zillow/intake-nested-yaml-catalog/issues/6 is resolved
@@ -76,14 +78,14 @@ class DalCatalog(NestedYAMLFileCatalog):
             return ret
 
     def _load(self, reload=False):
-        if self.is_path:
-            # File path or url. Load and parse.
-            super()._load()
-        else:
+        if self.yaml_catalog:
             # It's catalog data and not requires directory/url information.
             # Set self._dir to an empty value
             self._dir = ""
-            self.parse(yaml.dump(self.path_or_catalog))
+            self.parse(yaml.dump(self.yaml_catalog))
+        else:
+            # File path or url. Load and parse.
+            super()._load()
 
     def parse(self, text):
         data = yaml_load(text)

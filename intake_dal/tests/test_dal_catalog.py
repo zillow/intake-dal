@@ -58,7 +58,7 @@ def test_dal_catalog_with_catalog_data(remote_catalog_path):
         data = yaml.load(f)
 
     # Instead of passing path, passes the catalog data read from the file.
-    cat = DalCatalog("", storage_mode="golden", catalog_data=data)
+    cat = DalCatalog("", storage_mode="golden", yaml_catalog=data)
 
     assert cat.entity.property.user_event.default == "golden"
     assert cat.entity.property.user_dataset.default == "golden"
@@ -74,14 +74,14 @@ def test_dal_catalog_with_both_path_and_catalog_data(catalog_path, remote_catalo
         data = yaml.load(f)
 
     # Passing path and catalog data together. Should use `path`
-    cat = DalCatalog(catalog_path, storage_mode="batch", catalog_data=data)
+    cat = DalCatalog(catalog_path, storage_mode="batch", yaml_catalog=data)
     validate_catalog_from_path(cat)
 
 
 def test_dal_catalog_with_empty_path():
     # Passing an empty path and an empty catalog_data. Expect exception is raised
     with pytest.raises(IsADirectoryError):
-        DalCatalog("", storage_mode="batch", catalog_data="")
+        DalCatalog("", storage_mode="batch", yaml_catalog="")
 
 
 def validate_catalog_from_path(cat):
