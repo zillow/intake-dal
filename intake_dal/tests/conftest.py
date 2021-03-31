@@ -11,6 +11,11 @@ def catalog_path():
 
 
 @pytest.fixture
+def remote_catalog_path():
+    return str(Path(__file__).resolve().parent.joinpath(Path("remote_storage_catalog.yaml")))
+
+
+@pytest.fixture
 def serving_cat(catalog_path: str):
     return DalCatalog(catalog_path, storage_mode="serving")
 
