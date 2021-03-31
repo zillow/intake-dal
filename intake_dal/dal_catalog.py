@@ -57,17 +57,11 @@ class DalCatalog(NestedYAMLFileCatalog):
             # If you have a file or url for the datasets, please use the `path` argument.
             self.yaml_catalog = kwargs.get('yaml_catalog')
 
-            # Put empty value. Not read catalog data from the path
-            self.path = ""
-        else:
-            # A user passes path and url. In this case, ignore yaml_catalog.
-            self.path = path
-
         # Remove 'yaml_catalog'. It is not required in the parent class
         if 'yaml_catalog' in kwargs:
             kwargs.pop('yaml_catalog')
 
-        super(DalCatalog, self).__init__(self.path, autoreload, **kwargs)
+        super(DalCatalog, self).__init__(path, autoreload, **kwargs)
 
     def __getitem__(self, key):
         # TODO(Taleb Zeghmi): Remove once https://github.com/zillow/intake-nested-yaml-catalog/issues/6 is resolved
