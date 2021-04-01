@@ -44,3 +44,15 @@ Example code using sample catalog:
   df = cat.user_events.read()
 
 
+.. code-block:: python
+  # Be able to use with init_catalog which retrieves entities from the data catalog service by data portal
+  from aip_intake_adaptor.intake_adaptor import init_catalog
+
+  # This method populates a yaml catalog from retrieved entities and returns it.
+  yaml_catalog = init_catalog(data_catalog_endpoint="https://some.url", dataset_path_prefix="entity.user")
+
+  # To use yaml_catalog, set `path` to `None`
+  cat = DalCatalog(None, storage_mode="batch", yaml_catalog=yaml_catalog)
+
+  # reads from the batch storage system
+  df = cat.entity.user.user_events().read()
