@@ -1,4 +1,3 @@
-import yaml
 import pytest
 import pandas as pd
 
@@ -52,23 +51,15 @@ def test_construct_dataset(cat):
     validate_dataset(cat.entity.user["user_events"])
 
 
-def test_dal_catalog_with_yaml_datalog_object(catalog_path):
-    with open(catalog_path, 'r') as f:
-        yaml_catalog = yaml.load(f)
-
-    # Instead of passing path, passes the catalog data read from the file.
+def test_dal_catalog_with_yaml_datalog_object(yaml_catalog):
+    # Instead of passing path, passes the yaml catalog object.
     cat = DalCatalog("", storage_mode="serving", yaml_catalog=yaml_catalog)
 
     assert cat.entity.user.user_events.default == "serving"
     assert len(cat.entity.user.user_events.storage) == 5
 
 
-def test_dal_catalog_with_both_path_and_yaml_catalog_object(catalog_path):
-    # Path has a priority. Should use `path` and ignore `catalog_data`
-
-    with open(catalog_path, 'r') as f:
-        yaml_catalog = yaml.load(f)
-
+def test_dal_catalog_with_both_path_and_yaml_catalog_object(catalog_path, yaml_catalog):
     # Remove storage in yaml_catalog.
     # If DalCatalog returns cat from yaml_catalog, validate_catalog_from_path() fails
     del yaml_catalog["entity"]["user"]["user_events"]["args"]["storage"]
@@ -80,6 +71,9 @@ def test_dal_catalog_with_both_path_and_yaml_catalog_object(catalog_path):
 
 def test_dal_catalog_with_empty_path():
     # Passing an empty path and an empty catalog_data. Expect exception is raised
+    with pytest.raises(TypeError):
+        DalCatalog(None, storage_mode="batch", yaml_catalog="")
+
     with pytest.raises(IsADirectoryError):
         DalCatalog("", storage_mode="batch", yaml_catalog="")
 

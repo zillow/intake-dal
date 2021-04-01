@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import yaml
 import pytest
 
 from intake_dal.dal_catalog import DalCatalog
@@ -18,3 +19,10 @@ def serving_cat(catalog_path: str):
 @pytest.fixture
 def cat(catalog_path: str):
     return DalCatalog(catalog_path)
+
+
+@pytest.fixture
+def yaml_catalog(catalog_path):
+    with open(catalog_path, 'r') as f:
+        yaml_catalog = yaml.load(f)
+    return yaml_catalog
