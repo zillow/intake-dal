@@ -52,7 +52,13 @@ def test_construct_dataset(cat):
 
 
 def test_dal_catalog_with_yaml_datalog_object(yaml_catalog):
-    # Instead of passing path, passes the yaml catalog object.
+    # In case of passing path=None
+    cat = DalCatalog(None, storage_mode="serving", yaml_catalog=yaml_catalog)
+
+    assert cat.entity.user.user_events.default == "serving"
+    assert len(cat.entity.user.user_events.storage) == 5
+
+    # In case of passing path="" an empty string
     cat = DalCatalog("", storage_mode="serving", yaml_catalog=yaml_catalog)
 
     assert cat.entity.user.user_events.default == "serving"

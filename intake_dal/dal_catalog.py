@@ -57,6 +57,9 @@ class DalCatalog(NestedYAMLFileCatalog):
             # If you have a file or url for the datasets, please use the `path` argument.
             self.yaml_catalog = kwargs.get('yaml_catalog')
 
+            # Set path to an empty value. A yaml catalog is loaded in the memory
+            path = ""
+
         # Remove 'yaml_catalog'. It is not required in the parent class
         if 'yaml_catalog' in kwargs:
             kwargs.pop('yaml_catalog')
