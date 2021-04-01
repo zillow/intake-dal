@@ -45,6 +45,7 @@ Example code using sample catalog:
 
 
 .. code-block:: python
+
   # Be able to use with init_catalog which retrieves entities from the data catalog service by data portal
   from aip_intake_adaptor.intake_adaptor import init_catalog
 
