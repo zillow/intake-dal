@@ -73,7 +73,7 @@ class DalCatalog(NestedYAMLFileCatalog):
 
     def _load(self, reload=False):
         if self.yaml_catalog:
-            # It's catalog data and not requires directory/url information.
+            # A yaml catalog is already loaded in the memory, and just parse it.
             # Set self._dir to an empty value
             self._dir = ""
             self.parse(yaml.dump(self.yaml_catalog))

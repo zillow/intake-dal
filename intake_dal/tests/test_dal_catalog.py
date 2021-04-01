@@ -4,7 +4,6 @@ import pandas as pd
 
 from intake_dal.dal_catalog import DalCatalog
 
-
 """
 Test setup:
     - batch storage mode driver is parquet and '{{ CATALOG_DIR }}/data/user_events.parquet' has ONLY 1 row
@@ -19,7 +18,7 @@ def test_dal_catalog_default_storage_parameter(cat):
     assert cat.entity.user.user_events(storage_mode="batch").read().head().shape[0] == 1
     assert cat.entity.user.user_events(storage_mode="in_mem").read().head().shape[0] == 4
     assert (
-        cat.entity.user.user_events(storage_mode="local_test", data_path="data").read().head().shape[0] == 2
+            cat.entity.user.user_events(storage_mode="local_test", data_path="data").read().head().shape[0] == 2
     )
 
     df = pd.DataFrame({"key": ["a", "first"], "value": [3, 42]})
@@ -53,28 +52,29 @@ def test_construct_dataset(cat):
     validate_dataset(cat.entity.user["user_events"])
 
 
-def test_dal_catalog_with_catalog_data(remote_catalog_path):
-    with open(remote_catalog_path, 'r') as f:
-        data = yaml.load(f)
+def test_dal_catalog_with_yaml_datalog_object(catalog_path):
+    with open(catalog_path, 'r') as f:
+        yaml_catalog = yaml.load(f)
 
     # Instead of passing path, passes the catalog data read from the file.
-    cat = DalCatalog("", storage_mode="golden", yaml_catalog=data)
+    cat = DalCatalog("", storage_mode="serving", yaml_catalog=yaml_catalog)
 
-    assert cat.entity.property.user_event.default == "golden"
-    assert cat.entity.property.user_dataset.default == "golden"
-
-    assert len(cat.entity.property.user_event.storage) == 2
-    assert len(cat.entity.property.user_dataset.storage) == 2
+    assert cat.entity.user.user_events.default == "serving"
+    assert len(cat.entity.user.user_events.storage) == 5
 
 
-def test_dal_catalog_with_both_path_and_catalog_data(catalog_path, remote_catalog_path):
+def test_dal_catalog_with_both_path_and_yaml_catalog_object(catalog_path):
     # Path has a priority. Should use `path` and ignore `catalog_data`
 
-    with open(remote_catalog_path, 'r') as f:
-        data = yaml.load(f)
+    with open(catalog_path, 'r') as f:
+        yaml_catalog = yaml.load(f)
 
-    # Passing path and catalog data together. Should use `path`
-    cat = DalCatalog(catalog_path, storage_mode="batch", yaml_catalog=data)
+    # Remove storage in yaml_catalog.
+    # If DalCatalog returns cat from yaml_catalog, validate_catalog_from_path() fails
+    del yaml_catalog["entity"]["user"]["user_events"]["args"]["storage"]
+
+    # Passing path and yaml catalog object together. Should use `path`
+    cat = DalCatalog(catalog_path, storage_mode="batch", yaml_catalog=yaml_catalog)
     validate_catalog_from_path(cat)
 
 
