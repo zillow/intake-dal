@@ -46,10 +46,7 @@ Example code using sample catalog:
 
 .. code-block:: python
 
-  # Retrieves YAML string and it has key-values in the `Sample Catalog source entry`
-  yaml_string = get_yaml_string()
-
-  # Initialize a catalog from a YAML string and set `path` to `None`
+  # Initialize a catalog from a YAML string only`
   cat = DalCatalog(None, storage_mode="batch", yaml_catalog=yaml_string)
 
   # reads from the batch storage system
