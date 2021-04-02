@@ -46,14 +46,11 @@ Example code using sample catalog:
 
 .. code-block:: python
 
-  # Be able to use with init_catalog which retrieves entities from the data catalog service by data portal
-  from aip_intake_adaptor.intake_adaptor import init_catalog
+  # Retrieves YAML string and it has key-values in the `Sample Catalog source entry`
+  yaml_string = get_yaml_string()
 
-  # This method populates a yaml catalog from retrieved entities and returns it.
-  yaml_catalog = init_catalog(data_catalog_endpoint="https://some.url", dataset_path_prefix="entity.user")
-
-  # To use yaml_catalog, set `path` to `None`
-  cat = DalCatalog(None, storage_mode="batch", yaml_catalog=yaml_catalog)
+  # Initialize a catalog from a YAML string and set `path` to `None`
+  cat = DalCatalog(None, storage_mode="batch", yaml_catalog=yaml_string)
 
   # reads from the batch storage system
   df = cat.entity.user.user_events().read()
