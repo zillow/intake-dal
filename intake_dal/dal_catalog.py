@@ -81,7 +81,7 @@ class DalCatalog(NestedYAMLFileCatalog):
             # A yaml catalog is already loaded in the memory, and just parse it.
             # Set self._dir to an empty value
             self._dir = ""
-            self.parse(yaml.dump(self.yaml_catalog))
+            self.parse(self.yaml_catalog)
         else:
             # File path or url. Load and parse.
             super()._load()

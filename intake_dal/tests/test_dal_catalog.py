@@ -1,3 +1,4 @@
+import yaml
 import pytest
 import pandas as pd
 
@@ -53,13 +54,13 @@ def test_construct_dataset(cat):
 
 def test_dal_catalog_with_yaml_datalog_object(yaml_catalog):
     # In case of passing path=None
-    cat = DalCatalog(None, storage_mode="serving", yaml_catalog=yaml_catalog)
+    cat = DalCatalog(None, storage_mode="serving", yaml_catalog=yaml.dump(yaml_catalog))
 
     assert cat.entity.user.user_events.default == "serving"
     assert len(cat.entity.user.user_events.storage) == 5
 
     # In case of passing path="" an empty string
-    cat = DalCatalog("", storage_mode="serving", yaml_catalog=yaml_catalog)
+    cat = DalCatalog("", storage_mode="serving", yaml_catalog=yaml.dump(yaml_catalog))
 
     assert cat.entity.user.user_events.default == "serving"
     assert len(cat.entity.user.user_events.storage) == 5
@@ -71,7 +72,7 @@ def test_dal_catalog_with_both_path_and_yaml_catalog_object(catalog_path, yaml_c
     del yaml_catalog["entity"]["user"]["user_events"]["args"]["storage"]
 
     # Passing path and yaml catalog object together. Should use `path`
-    cat = DalCatalog(catalog_path, storage_mode="batch", yaml_catalog=yaml_catalog)
+    cat = DalCatalog(catalog_path, storage_mode="batch", yaml_catalog=yaml.dump(yaml_catalog))
     validate_catalog_from_path(cat)
 
 

@@ -24,5 +24,5 @@ def cat(catalog_path: str):
 @pytest.fixture
 def yaml_catalog(catalog_path):
     with open(catalog_path, 'r') as f:
-        yaml_catalog = yaml.load(f)
+        yaml_catalog = yaml.safe_load(f)
     return yaml_catalog
