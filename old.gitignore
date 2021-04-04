@@ -23,8 +23,6 @@ eggs/
 parts/
 /share/
 /etc/
-/__pycache__/
-.pytest_cache/
 intake_nested_yaml_catalog.egg-info/
 .extends-cache
 GENERATED_VERSION
@@ -62,7 +60,6 @@ conf.cfg
 *.tar
 *.zip
 *.eggs
-*.egg-info/
 
 # Logs and databases #
 ######################
@@ -110,4 +107,3 @@ man
 .Python
 
 pip-selfcheck.json
-htmlcov/
