@@ -17,6 +17,13 @@ It also provides an easy way to specialize a
 `hierarchical catalog <https://github.com/zillow/intake-nested-yaml-catalog/>`_
 to a default DAL storage system.
 
+Install package:
+
+.. code-block::
+    >> pip3 install intake-dal -i https://artifactory.zgtools.net/artifactory/api/pypi/analytics-python/simple/
+
+    // Install a package with specific version
+    >> pip3 install intake-dal==0.1.10 -i https://artifactory.zgtools.net/artifactory/api/pypi/analytics-python/simple/
 
 Sample Catalog source entry:
 
