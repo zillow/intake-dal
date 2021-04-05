@@ -20,6 +20,7 @@ to a default DAL storage system.
 Install package:
 
 .. code-block::
+
     >> pip3 install intake-dal -i https://artifactory.zgtools.net/artifactory/api/pypi/analytics-python/simple/
 
     // Install a package with specific version
