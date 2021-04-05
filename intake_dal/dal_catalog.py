@@ -10,7 +10,7 @@ from intake_nested_yaml_catalog.nested_yaml_catalog import (
 
 from intake_dal.dal_source import DalSource
 
-YAML_CATALOG = 'yaml_catalog'
+YAML_CATALOG_PARAM = 'yaml_catalog'
 
 
 class DalCatalog(NestedYAMLFileCatalog):
@@ -54,17 +54,17 @@ class DalCatalog(NestedYAMLFileCatalog):
         self.storage_mode = storage_mode
         self.yaml_catalog = None
 
-        if kwargs.get(YAML_CATALOG) and not path:
+        if kwargs.get(YAML_CATALOG_PARAM) and not path:
             # A user passes catalog object thru 'yaml_catalog'
             # If you have a file or url for the datasets, please use the `path` argument.
-            self.yaml_catalog = kwargs.get(YAML_CATALOG)
+            self.yaml_catalog = kwargs.get(YAML_CATALOG_PARAM)
 
             # Set path to an empty value. A yaml catalog is loaded in the memory
             path = ""
 
         # Remove 'yaml_catalog'. It is not required in the parent class
-        if YAML_CATALOG in kwargs:
-            kwargs.pop(YAML_CATALOG)
+        if YAML_CATALOG_PARAM in kwargs:
+            kwargs.pop(YAML_CATALOG_PARAM)
 
         super(DalCatalog, self).__init__(path, autoreload, **kwargs)
 
