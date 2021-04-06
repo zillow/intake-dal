@@ -200,10 +200,10 @@ class DalSource(DataSource):
 
 def _get_dal_canonical_name(source: DataSource) -> str:
     def helper(source: DataSource) -> List[str]:
-        if source.cat is None:
-            return []  # the parent catalog is not part of the canonical name
-        elif source.cat:
+        if source.cat:
             return helper(source.cat) + [source.name]
+        else:
+            return []  # the parent catalog is not part of the canonical name
 
     return ".".join(helper(source))
 
@@ -231,6 +231,8 @@ def _get_metadata_schema(source: DataSource) -> Dict:
         return source.metadata["data_schema"]
     elif source.cat:
         return _get_metadata_schema(source.cat)
+    else:
+        return {}
 
 
 # TODO(talebz): ensure this is comprehensive with unit tests!
