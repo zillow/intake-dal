@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "intake-dal"
-version = "0.1.10"
+version = "0.0.0"
 description = "Intake single YAML hierarchical catalog."
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",

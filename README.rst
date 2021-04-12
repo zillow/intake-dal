@@ -23,8 +23,6 @@ Install package:
 
     >> pip3 install intake-dal -i https://artifactory.zgtools.net/artifactory/api/pypi/analytics-python/simple/
 
-    // Install a package with specific version
-    >> pip3 install intake-dal==0.1.10 -i https://artifactory.zgtools.net/artifactory/api/pypi/analytics-python/simple/
 
 Sample Catalog source entry:
 
