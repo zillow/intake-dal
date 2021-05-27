@@ -74,8 +74,10 @@ class DalOnlineSource(DataSource):
             df, self._avro_schema, post_lambda, write_chunk_size, write_delay_between_chunks_milliseconds
         )
 
-    def _get_partition(self, _) -> pd.DataFrame:
+    def read(self, timeout: float = 10):
+        return self._get_partition(timeout)
 
+    def _get_partition(self, timeout: float) -> pd.DataFrame:
         def http_get_argument():
             if isinstance(self._key_value, Iterable) and not isinstance(self._key_value, str):
                 return ",".join(map(str, self._key_value))
@@ -84,7 +86,7 @@ class DalOnlineSource(DataSource):
 
         self._get_schema()
 
-        data = _http_get_avro_data_set(self._url, self._canonical_name, http_get_argument())
+        data = _http_get_avro_data_set(self._url, self._canonical_name, http_get_argument(), timeout)
         for row in data:
             for key, field in row.items():
                 if isinstance(field, dict) and "format" in field:
@@ -145,8 +147,11 @@ def _post_in_chunks(
     return times
 
 
-def _http_get_avro_data_set(url: str, canonical_name: str, key_value: str) -> List[Dict]:
-    response = requests.get(urllib.parse.urljoin(url, f"{AVRO_DATA_SETS_PATH}/{canonical_name}/{key_value}"))
+def _http_get_avro_data_set(url: str, canonical_name: str, key_value: str, timeout: float) -> List[Dict]:
+    response = requests.get(
+        urllib.parse.urljoin(url, f"{AVRO_DATA_SETS_PATH}/{canonical_name}/{key_value}"), timeout=timeout
+    )
+
     if response.status_code != HTTPStatus.OK.value:
         raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
     return response.json()["data"]

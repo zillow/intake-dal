@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 from pandas.util.testing import assert_frame_equal
+from requests.exceptions import Timeout
 
 from intake_dal.dal_catalog import DalCatalog
 from intake_dal.dal_online import (
@@ -14,6 +15,11 @@ from intake_dal.dal_online import (
     deserialize_avro_str_to_pandas,
     serialize_panda_df_to_str,
 )
+
+
+@pytest.fixture
+def timeout():
+    return 10
 
 
 @pytest.fixture
@@ -170,12 +176,14 @@ def test_dal_online_multi_key_read(
         serving_cat: DalCatalog,
         user_events_df: pd.DataFrame,
         user_events_json: List[Dict],
+        timeout: float,
 ):
     mock_get.return_value = user_events_json
 
     assert_frame_equal(user_events_df, serving_cat.entity.user.user_events(key=[100, 101]).read(), check_dtype=False)
     mock_get.assert_called()
-    assert (mock_get.call_args_list[0] == [('https://featurestore.url.net', 'entity.user.user_events', '100,101')])
+    assert (mock_get.call_args_list[0] == [('https://featurestore.url.net', 'entity.user.user_events', '100,101',
+                                            timeout)])
 
 
 @mock.patch("intake_dal.dal_online._http_get_avro_data_set")
@@ -184,13 +192,15 @@ def test_dal_online_multi_key_read_with_missing_entries(
         serving_cat: DalCatalog,
         user_events_with_missing_entries_df: pd.DataFrame,
         user_events_multi_key_with_some_missing_entries_json: List[Dict],
+        timeout: float,
 ):
     mock_get.return_value = user_events_multi_key_with_some_missing_entries_json
 
     assert_frame_equal(user_events_with_missing_entries_df, serving_cat.entity.user.user_events(key=[1, 2, 3]).read(),
                        check_dtype=False)
     mock_get.assert_called()
-    assert (mock_get.call_args_list[0] == [('https://featurestore.url.net', 'entity.user.user_events', '1,2,3')])
+    assert (mock_get.call_args_list[0] == [('https://featurestore.url.net', 'entity.user.user_events', '1,2,3',
+                                            timeout)])
 
 
 @mock.patch("intake_dal.dal_online._http_get_avro_data_set")
@@ -199,6 +209,7 @@ def test_dal_online_key_as_string(
         serving_cat: DalCatalog,
         user_single_event_df: pd.DataFrame,
         user_single_event_json: List[Dict],
+        timeout: float,
 ):
     mock_get.return_value = user_single_event_json
 
@@ -206,4 +217,36 @@ def test_dal_online_key_as_string(
                        check_dtype=False)
     mock_get.assert_called()
     assert len(mock_get.call_args_list) == 1
-    assert(mock_get.call_args_list[0] == [('https://featurestore.url.net', 'entity.user.user_events', '123')])
+    assert (mock_get.call_args_list[0] == [('https://featurestore.url.net', 'entity.user.user_events', '123',
+                                            timeout)])
+
+
+@mock.patch("intake_dal.dal_online._http_get_avro_data_set")
+def test_dal_online_key_as_string_with_timeout(
+        mock_get: MagicMock,
+        serving_cat: DalCatalog,
+        user_single_event_df: pd.DataFrame,
+        user_single_event_json: List[Dict],
+):
+    mock_get.return_value = user_single_event_json
+    timeout = 11
+    assert_frame_equal(
+        user_single_event_df,
+        serving_cat.entity.user.user_events(key="123").read(timeout=timeout),
+        check_dtype=False,
+    )
+    mock_get.assert_called()
+    assert len(mock_get.call_args_list) == 1
+    assert (mock_get.call_args_list[0] == [("https://featurestore.url.net", "entity.user.user_events", "123",
+                                            timeout)])
+
+
+@mock.patch("requests.get")
+def test_dal_online_read_timeout_exception(
+        mock_request_get: MagicMock,
+        serving_cat: DalCatalog,
+):
+    mock_request_get.side_effect = Timeout()
+
+    with pytest.raises(Timeout):
+        serving_cat.entity.user.user_events(key="123").read()

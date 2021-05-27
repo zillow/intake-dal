@@ -162,9 +162,9 @@ class DalSource(DataSource):
         self._get_source()
         return self.source.discover()
 
-    def read(self):
+    def read(self, **kwargs):
         self._get_source()
-        return self.source.read()
+        return self.source.read(**kwargs)
 
     def read_partition(self, i):
         self._get_source()
