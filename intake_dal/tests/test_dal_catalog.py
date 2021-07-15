@@ -1,8 +1,9 @@
-import yaml
-import pytest
 import pandas as pd
+import pytest
+import yaml
 
 from intake_dal.dal_catalog import DalCatalog
+
 
 """
 Test setup:
@@ -18,7 +19,7 @@ def test_dal_catalog_default_storage_parameter(cat):
     assert cat.entity.user.user_events(storage_mode="batch").read().head().shape[0] == 1
     assert cat.entity.user.user_events(storage_mode="in_mem").read().head().shape[0] == 4
     assert (
-            cat.entity.user.user_events(storage_mode="local_test", data_path="data").read().head().shape[0] == 2
+        cat.entity.user.user_events(storage_mode="local_test", data_path="data").read().head().shape[0] == 2
     )
 
     df = pd.DataFrame({"key": ["a", "first"], "value": [3, 42]})

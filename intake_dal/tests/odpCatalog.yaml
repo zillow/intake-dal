@@ -1,0 +1,31 @@
+{
+  name: "ZG Catalog",
+  metadata: {
+    datasync_docker_image_path: "zo-docker.artifactory.zgtools.net/zo/zoml/docker-dataset-sync:1.0.165",
+    hierarchical_catalog: true,
+    data_schema: {
+      entity.property.zcr.oob_filtered: '{"name":"Root","type":"record","fields":[ {"name":"regionidcounty","type":["null","int"]}, {"name":"zpid","type":["null","int"]}, {"name":"parcelid","type":["null","int"]}, {"name":"stacklow","type":["null","float"]}, {"name":"stack","type":["null","float"]}, {"name":"stackhigh","type":["null","float"]}, {"name":"stackfsd","type":["null","float"]} ]}'
+    }
+  },
+  entity: {
+    property: {
+      zcr: {
+        oob_filtered: {
+          description: "ZCR Stack Scores OOB (filtered)",
+          driver: "dal",
+          args: {
+            default: "batch",
+            storage: {
+              batch: "parquet://s3://serve-datalake-zillowgroup/zillow/zestimate/submodels/stack/scores-oob/zo-filtered/dt={{dt}}/*.parquet",
+              serving: "dal-odp://http://odp-api.int.dev-k8s.zg-aip.net#zcr"
+            }
+          },
+          metadata: {
+            public: true,
+            owner_team: "ZOML"
+          }
+        }
+      }
+    }
+  }
+}

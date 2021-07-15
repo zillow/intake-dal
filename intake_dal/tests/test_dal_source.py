@@ -48,8 +48,8 @@ def test_dataset_without_avro_and_engine_arg(serving_cat):
     ds.discover()
 
     # ensure that the engine argument is passed along to the DalSource instantiated source object
-    assert ds.source._captured_init_kwargs['engine'] == 'fastparquet'
-    assert not ds.source._captured_init_kwargs['gather_statistics']
+    assert ds.source._captured_init_kwargs["engine"] == "fastparquet"
+    assert not ds.source._captured_init_kwargs["gather_statistics"]
 
 
 def test_parse_storage_mode_url():
