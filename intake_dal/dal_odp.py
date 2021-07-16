@@ -23,6 +23,13 @@ class DalOdpSource(DalOnlineSource):
         self._version = version
         super().__init__(urlpath=urlpath, key=key, storage_options=storage_options, metadata=metadata)
 
+    def read(self, timeout: float = 10, key=None, version=None):
+        if key:
+            self._key_value = key
+        if version:
+            self._version = version
+        return self._get_partition(timeout)
+
     def _get_partition(self, timeout: float) -> pd.DataFrame:
         def http_get_argument():
             if isinstance(self._key_value, Iterable) and not isinstance(self._key_value, str):
@@ -40,7 +47,9 @@ class DalOdpSource(DalOnlineSource):
         return pd.DataFrame(data)
 
 
-def _http_get_avro_data_set(url: str, odp_name: str, key_value: str, version: str, timeout: float) -> List[Dict]:
+def _http_get_avro_data_set(
+    url: str, odp_name: str, key_value: str, version: str, timeout: float
+) -> List[Dict]:
     m = re.search(r"https*:\/\/odp-api.*\.(.*)-k8s", url)
     if m:
         env = m.group(1)
@@ -55,7 +64,8 @@ def _http_get_avro_data_set(url: str, odp_name: str, key_value: str, version: st
     }
     response = requests.get(
         urllib.parse.urljoin(url, f"getRecord/{odp_name}/{key_value}/{version}?output=AvroToJson"),
-        headers=headers[env], timeout=timeout
+        headers=headers[env],
+        timeout=timeout,
     )
     if response.status_code != HTTPStatus.OK.value:
         raise Exception(f"url={response.url} code={response.status_code}: {response.text}")
